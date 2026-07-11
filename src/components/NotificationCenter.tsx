@@ -1,0 +1,174 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../lib/firebase';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { Bell } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { isAdmin } from '../lib/permissions';
+
+type NotificationItem = {
+  id: string;
+  title: string;
+  description: string;
+  type: 'approval' | 'update' | 'request';
+  link?: string;
+};
+
+export default function NotificationCenter() {
+  const { profile } = useAuth();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const unsubscribers: (() => void)[] = [];
+
+    // 1. Superadmin: Pending Tenants
+    if (profile.role === 'superadmin') {
+      const q = query(collection(db, 'tenants'), where('status', '==', 'pending'));
+      const unsub = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: `tenant-${doc.id}`,
+          title: 'Persetujuan Komunitas',
+          description: `Komunitas baru "${doc.data().name}" menunggu persetujuan.`,
+          type: 'approval' as const
+        }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('tenant-')), ...items]);
+      }, (error) => {
+        console.error("NotificationCenter superadmin error:", error);
+      });
+      unsubscribers.push(unsub);
+    }
+
+    // 2. Admin: Pending Members
+    if (isAdmin(profile) && profile.tenantId && profile.isApproved) {
+      const q = query(
+        collection(db, 'users'), 
+        where('tenantId', '==', profile.tenantId),
+        where('isApproved', '==', false)
+      );
+      const unsub = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: `member-${doc.id}`,
+          title: 'Permintaan Bergabung',
+          description: `${doc.data().email} ingin bergabung dengan komunitas Anda.`,
+          type: 'request' as const
+        }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('member-')), ...items]);
+      }, (error) => {
+        console.error("NotificationCenter admin error:", error);
+      });
+      unsubscribers.push(unsub);
+
+      // 2b. Admin: New Incidents
+      const incidentQ = query(
+        collection(db, 'social_alerts'),
+        where('tenantId', '==', profile.tenantId),
+        where('type', '==', 'incident'),
+        orderBy('createdAt', 'desc'),
+        limit(5)
+      );
+      const unsubIncident = onSnapshot(incidentQ, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: `incident-${doc.id}`,
+          title: doc.data().title || 'Laporan Baru',
+          description: doc.data().description || 'Ada laporan pantauan jalan baru.',
+          type: 'update' as const
+        }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('incident-')), ...items]);
+      }, (error) => {
+        console.error("NotificationCenter incident error:", error);
+      });
+      unsubscribers.push(unsubIncident);
+    }
+
+    // 3. All Members: Active Proposals (Community Updates)
+    if (profile.tenantId && profile.isApproved) {
+      const q = query(
+        collection(db, 'proposals'),
+        where('tenantId', '==', profile.tenantId),
+        where('status', '==', 'active')
+      );
+      const unsub = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: `proposal-${doc.id}`,
+          title: 'Proposal Aktif',
+          description: `Proposal baru: "${doc.data().title}" membutuhkan suara Anda.`,
+          type: 'update' as const
+        }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('proposal-')), ...items]);
+      }, (error) => {
+        console.error("NotificationCenter member error:", error);
+      });
+      unsubscribers.push(unsub);
+    }
+
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [profile]);
+
+  return (
+    <div className="relative">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all relative"
+      >
+        <Bell size={20} />
+        {notifications.length > 0 && (
+          <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+            {notifications.length}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+            <motion.div 
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden"
+            >
+              <div className="p-3 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
+                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Notifikasi</h3>
+                <span className="text-[10px] text-gray-400 font-medium">{notifications.length} Pesan</span>
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-xs text-gray-400 italic">Tidak ada notifikasi baru.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col">
+                    {notifications.map(n => (
+                      <div 
+                        key={n.id}
+                        className="p-3 border-b border-gray-50 hover:bg-blue-50/30 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            n.type === 'approval' ? 'bg-orange-500' : 
+                            n.type === 'request' ? 'bg-blue-500' : 'bg-green-500'
+                          }`} />
+                          <p className="text-[11px] font-bold text-gray-900">{n.title}</p>
+                        </div>
+                        <p className="text-[10px] text-gray-600 leading-relaxed">{n.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {notifications.length > 0 && (
+                <div className="p-2 bg-gray-50 text-center">
+                  <button className="text-[10px] font-bold text-blue-600 hover:text-blue-700">Tandai semua dibaca</button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

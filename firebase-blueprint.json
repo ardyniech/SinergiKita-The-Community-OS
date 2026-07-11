@@ -1,0 +1,275 @@
+{
+  "entities": {
+    "Tenant": {
+      "title": "Tenant",
+      "description": "A community or residential area (RT/RW).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the community." },
+        "status": { "type": "string", "enum": ["pending", "approved", "suspended"], "description": "Approval status." },
+        "ownerId": { "type": "string", "description": "UID of the user who created the community." },
+        "createdAt": { "type": "number", "description": "Timestamp in milliseconds." },
+        "enabledModules": { "type": "array", "items": { "type": "string" } },
+        "type": { "type": "string" }
+      },
+      "required": ["name", "status", "ownerId", "createdAt"]
+    },
+    "AppUser": {
+      "title": "AppUser",
+      "description": "User profile with role and tenant association.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["superadmin", "admin", "member"] },
+        "tenantId": { "type": "string", "description": "ID of the tenant the user belongs to." },
+        "isApproved": { "type": "boolean" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "rating": { "type": "number" },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "points": { "type": "number" },
+        "isCritical": { "type": "boolean" },
+        "observations": { "type": "string" },
+        "evaluationNote": { "type": "string" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial record for a tenant.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "description": { "type": "string" },
+        "date": { "type": "string", "description": "ISO date string or localized string." },
+        "category": { "type": "string" }
+      },
+      "required": ["tenantId", "amount", "type", "description", "date"]
+    },
+    "Proposal": {
+      "title": "Proposal",
+      "description": "Community proposal for voting.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "yesVotes": { "type": "number" },
+        "noVotes": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "closed", "approved", "rejected"] }
+      },
+      "required": ["tenantId", "title", "description", "status"]
+    },
+    "Emergency": {
+      "title": "Emergency",
+      "description": "Emergency SOS alert.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["security", "medical", "fire", "other"] },
+        "senderName": { "type": "string" },
+        "senderAddress": { "type": "string" },
+        "senderId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "timestamp": { "type": "object", "description": "Server timestamp or number." }
+      },
+      "required": ["type", "senderName", "senderAddress", "senderId", "tenantId"]
+    },
+    "RecurringTransaction": {
+      "title": "RecurringTransaction",
+      "description": "A monthly recurring transaction template.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "paused"] },
+        "nextBillingDate": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["tenantId", "description", "amount", "status"]
+    },
+    "SocialAlert": {
+      "title": "SocialAlert",
+      "description": "Community social info or welfare alert.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "uid": { "type": "string" },
+        "userName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "severity": { "type": "string" },
+        "helpers": { "type": "number" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["tenantId", "title", "description"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Product for sale in the community shop.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "stock": { "type": "number" }
+      },
+      "required": ["tenantId", "name", "price"]
+    },
+    "KoperasiRecord": {
+      "title": "KoperasiRecord",
+      "description": "A record of deposit or loan in the community cooperative.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "uid": { "type": "string" },
+        "userName": { "type": "string" },
+        "type": { "type": "string", "enum": ["deposit", "loan", "repayment"] },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "completed", "rejected"] },
+        "timestamp": { "type": "object" },
+        "note": { "type": "string" }
+      },
+      "required": ["tenantId", "uid", "type", "amount", "status"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Crowdfunding project for the community.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "uid": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "title": { "type": "string" },
+        "target": { "type": "number" },
+        "current": { "type": "number" },
+        "backers": { "type": "number" },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "funded", "closed"] },
+        "description": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["tenantId", "title", "target", "status"]
+    },
+    "LearningContent": {
+      "title": "LearningContent",
+      "description": "Educational materials or guides provided by community admins.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["tenantId", "title", "content", "authorId"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Latest information and news for the community.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "authorName": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["tenantId", "title", "content"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Communication messages between members and admins.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "object" }
+      },
+      "required": ["tenantId", "senderId", "text"]
+    },
+    "AuditEntry": {
+      "title": "AuditEntry",
+      "description": "System audit log for tracking user actions.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "action": { "type": "string" },
+        "user": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userRole": { "type": "string" },
+        "timestamp": { "type": "object" }
+      },
+      "required": ["tenantId", "action", "user", "timestamp"]
+    }
+  },
+  "firestore": {
+    "tenants": {
+      "schema": "Tenant",
+      "description": "Root collection for all communities."
+    },
+    "users": {
+      "schema": "AppUser",
+      "description": "Root collection for all users."
+    },
+    "transactions": {
+      "schema": "Transaction",
+      "description": "Financial records filtered by tenantId."
+    },
+    "proposals": {
+      "schema": "Proposal",
+      "description": "Community proposals filtered by tenantId."
+    },
+    "emergencies": {
+      "schema": "Emergency",
+      "description": "Emergency alerts filtered by tenantId."
+    },
+    "recurring": {
+      "schema": "RecurringTransaction",
+      "description": "Monthly recurring transactions."
+    },
+    "social_alerts": {
+      "schema": "SocialAlert",
+      "description": "Social welfare info."
+    },
+    "products": {
+      "schema": "Product",
+      "description": "Shop products."
+    },
+    "koperasi": {
+      "schema": "KoperasiRecord",
+      "description": "Cooperative transactions."
+    },
+    "projects": {
+      "schema": "Project",
+      "description": "Crowdfunding projects."
+    },
+    "learning": {
+      "schema": "LearningContent",
+      "description": "Educational materials and guides."
+    },
+    "announcements": {
+      "schema": "Announcement",
+      "description": "Latest community news."
+    },
+    "messages": {
+      "schema": "ChatMessage",
+      "description": "Community communication channel."
+    },
+    "audit_logs": {
+      "schema": "AuditEntry",
+      "description": "System activity logs."
+    }
+  }
+}

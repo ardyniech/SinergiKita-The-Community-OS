@@ -1,0 +1,6 @@
+{
+  "name": "SinergiKita",
+  "description": "A comprehensive Community Operating System (OS) for grassroots community management. Features include finance tracking, social welfare alerts, secure member directory, real-time emergency SOS, and AI-powered community insights using Gemini.",
+  "requestFramePermissions": ["camera", "geolocation", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
