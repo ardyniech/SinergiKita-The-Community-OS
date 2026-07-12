@@ -16,12 +16,12 @@ admin.initializeApp({
 // Zod schemas for input validation
 const InsightsSchema = z.object({
   data: z.object({
-    memberCount: z.number().int().nonnegative(),
+    memberCount: z.number(),
     balance: z.number(), // balance can be negative or positive
-    transactionCount: z.number().int().nonnegative(),
-    announcementCount: z.number().int().nonnegative(),
-    projectCount: z.number().int().nonnegative(),
-    inventoryCount: z.number().int().nonnegative(),
+    transactionCount: z.number(),
+    announcementCount: z.number(),
+    projectCount: z.number(),
+    inventoryCount: z.number(),
   }),
 });
 
@@ -61,11 +61,12 @@ async function startServer() {
       next();
     } catch (error: any) {
       console.error("Firebase ID Token Verification Failed:", error);
-      return res.status(401).json({ error: "Unauthorized: Invalid token" });
+      return res.status(403).json({ error: "Forbidden: Invalid or expired token" });
     }
   };
 
-  // Protect all /api/ai/* and /api/community/* routes
+  // Protect all /api/ai/* and /api/community/* routes, and /api/recommendations
+  app.use("/api/recommendations", verifyFirebaseToken);
   app.use("/api/ai/*", verifyFirebaseToken);
   app.use("/api/community/*", verifyFirebaseToken);
 
@@ -77,7 +78,7 @@ async function startServer() {
   app.get("/api/recommendations", async (req, res) => {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-3.5-flash",
         contents: "You are an expert community administrator for 'SinergiKita', a platform for grassroots community synergy. Based on general community needs (transparency, finance, social welfare), provide 3 short, actionable recommendations for a community leader. Format as JSON: array of {id, title, description}.",
         config: {
           responseMimeType: "application/json",
@@ -105,7 +106,29 @@ async function startServer() {
 
   app.post("/api/ai/insights", express.json(), async (req, res) => {
     try {
-      // Validate request body using Zod
+      // 1. Verify user role & tenant membership securely on the backend
+      const uid = (req as any).user?.uid;
+      if (!uid) {
+        return res.status(401).json({ error: "Unauthorized: Missing user credentials" });
+      }
+
+      const userDoc = await admin.firestore().collection("users").doc(uid).get();
+      if (!userDoc.exists) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
+
+      const userData = userDoc.data();
+      const tenantId = userData?.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "User is not associated with any community tenant" });
+      }
+
+      const allowedRoles = ['superadmin', 'admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'];
+      if (!allowedRoles.includes(userData?.role || '')) {
+        return res.status(403).json({ error: "Forbidden: Only community administrators can trigger insights" });
+      }
+
+      // 2. Validate request body using Zod
       const parsedBody = InsightsSchema.safeParse(req.body);
       if (!parsedBody.success) {
         return res.status(400).json({ 
@@ -115,6 +138,24 @@ async function startServer() {
       }
 
       const { data } = parsedBody.data;
+
+      // 3. Check for cached weekly summary to prevent excessive AI costs
+      const now = new Date();
+      const oneJan = new Date(now.getFullYear(), 0, 1);
+      const numberOfDays = Math.floor((now.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+      const weekNumber = Math.ceil((numberOfDays + oneJan.getDay() + 1) / 7);
+      const cacheKey = `${now.getFullYear()}-W${weekNumber}`;
+      const docId = `${tenantId}_${cacheKey}`;
+
+      const cacheRef = admin.firestore().collection("insights_cache").doc(docId);
+      const cacheSnap = await cacheRef.get();
+
+      if (cacheSnap.exists) {
+        const cachedData = cacheSnap.data();
+        return res.json({ summary: cachedData?.summary, cached: true });
+      }
+
+      // 4. Generate new insight if not cached
       const prompt = `
         You are a community analyst for SinergiKita. Analyze the following community data and provide a concise weekly executive summary in Indonesian.
         Include sections for:
@@ -135,11 +176,22 @@ async function startServer() {
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-3.5-flash",
         contents: prompt,
       });
 
-      res.json({ summary: response.text });
+      const summaryText = response.text || "Rangkuman tidak berhasil dihasilkan.";
+
+      // 5. Store generated summary in cache
+      await cacheRef.set({
+        tenantId,
+        cacheKey,
+        summary: summaryText,
+        stats: data,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      res.json({ summary: summaryText, cached: false });
     } catch (error: any) {
       console.error("Gemini Insights Error Details:", error);
       
@@ -170,7 +222,7 @@ async function startServer() {
       const { incidents, avgResponseTime } = parsedBody.data;
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-3.5-flash",
         contents: `
           You are a Community Health Analyst for SinergiKita. Based on the following incident data and average response time, provide 3-4 highly actionable "Smart Tips" (Tips Cerdas) in Indonesian to improve community safety and responsiveness.
           

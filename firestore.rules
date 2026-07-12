@@ -182,6 +182,26 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------
+    // Transaction Approvals
+    // ---------------------------------------------------------
+    match /transaction_approvals/{id} {
+      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // Santunan Claims
+    // ---------------------------------------------------------
+    match /santunan_claims/{id} {
+      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
     // Audit Logs
     // ---------------------------------------------------------
     match /audit_logs/{id} {

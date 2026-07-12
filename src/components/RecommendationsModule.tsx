@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { auth } from '../lib/firebase';
 
 type Recommendation = {
   id: number;
@@ -11,20 +12,26 @@ export default function RecommendationsModule() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/recommendations')
-      .then(async res => {
+    const fetchRecommendations = async () => {
+      try {
+        const idToken = await auth.currentUser?.getIdToken();
+        const headers: HeadersInit = {};
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
+        }
+
+        const res = await fetch('/api/recommendations', { headers });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Gagal memuat rekomendasi");
-        return data;
-      })
-      .then(data => {
         setRecommendations(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error(err);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchRecommendations();
   }, []);
 
   const dismiss = (id: number) => {
