@@ -428,6 +428,7 @@ export default function SocialModule() {
                       <label className="block text-[8px] font-bold uppercase text-gray-400">Jumlah Dana Diajukan (Rp)</label>
                       <input 
                         type="number" 
+                        inputMode="numeric"
                         required
                         placeholder="Contoh: 1500000" 
                         className="w-full text-xs p-2 border border-gray-200 bg-white rounded-lg outline-none"

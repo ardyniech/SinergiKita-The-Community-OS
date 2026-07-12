@@ -24,6 +24,7 @@ export function FundingForm({ newProject, setNewProject, onSubmit, onCancel, sub
         <div className="flex gap-2">
           <input 
             type="number" placeholder="Target (Rp)" 
+            inputMode="numeric"
             className="flex-1 p-3 rounded-xl border border-gray-200 text-sm outline-none" 
             value={newProject.target} onChange={e => setNewProject({...newProject, target: e.target.value})}
           />

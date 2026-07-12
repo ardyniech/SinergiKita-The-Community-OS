@@ -15,6 +15,10 @@ interface Emergency {
   status?: 'triggered' | 'accepted' | 'handling' | 'resolved';
   responderName?: string;
   responderUid?: string;
+  triggeredAt?: string;
+  acceptedAt?: string;
+  handlingAt?: string;
+  resolvedAt?: string;
 }
 
 interface EmergencyAlertProps {
@@ -33,6 +37,25 @@ export function EmergencyAlert({ alert, isAdmin, onResolve, currentUser }: Emerg
   const simulatedDistance = (seed * 7) % 120 + 8; // Between 8m and 128m
   const isCloseRange = simulatedDistance < 50;
 
+  const formatTime = (ts: any) => {
+    if (!ts) return null;
+    try {
+      if (typeof ts === 'string') {
+        const d = new Date(ts);
+        return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+      if (ts.toDate) {
+        return ts.toDate().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+      if (ts.seconds) {
+        return new Date(ts.seconds * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  };
+
   const handleUpdateStatus = async (nextStatus: 'accepted' | 'handling' | 'resolved') => {
     try {
       const docRef = doc(db, 'emergencies', alert.id);
@@ -47,12 +70,14 @@ export function EmergencyAlert({ alert, isAdmin, onResolve, currentUser }: Emerg
         await updateDoc(docRef, {
           status: 'accepted',
           responderUid: currentUser.uid,
-          responderName: currentUser.displayName || currentUser.email.split('@')[0]
+          responderName: currentUser.displayName || currentUser.email.split('@')[0],
+          acceptedAt: new Date().toISOString()
         });
         showToast(`Anda menerima panggilan darurat dari ${alert.senderName}!`);
       } else {
         await updateDoc(docRef, {
-          status: 'handling'
+          status: 'handling',
+          handlingAt: new Date().toISOString()
         });
         showToast("Status diubah: Tim sedang menangani insiden di lokasi.");
       }
@@ -151,6 +176,62 @@ export function EmergencyAlert({ alert, isAdmin, onResolve, currentUser }: Emerg
           <span>Diterima oleh Penolong: <b className="text-gray-900">{alert.responderName}</b></span>
         </div>
       )}
+
+      {/* Progress Timeline Tracker */}
+      <div className="bg-white p-2 rounded-lg border border-gray-100 flex flex-col gap-1.5 text-[9px]">
+        <span className="font-extrabold text-[8px] text-gray-400 uppercase tracking-widest block mb-1">
+          Tracking Status Penanganan:
+        </span>
+        <div className="flex items-center justify-between relative px-2">
+          {/* Connector Line */}
+          <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-gray-100 -translate-y-1/2 z-0" />
+          
+          {/* Step 1: Diterima */}
+          <div className="flex flex-col items-center text-center z-10 w-20">
+            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black border-2 ${
+              ['accepted', 'handling', 'resolved'].includes(currentStatus)
+                ? 'bg-amber-500 border-amber-600 text-white'
+                : 'bg-red-500 border-red-600 text-white animate-pulse'
+            }`}>
+              1
+            </div>
+            <span className="font-bold text-gray-800 mt-1">Diterima</span>
+            <span className="text-[7px] text-gray-500 font-mono">
+              {formatTime(alert.acceptedAt) || formatTime(alert.timestamp) || formatTime(alert.triggeredAt) || 'Menunggu...'}
+            </span>
+          </div>
+
+          {/* Step 2: Ditangani */}
+          <div className="flex flex-col items-center text-center z-10 w-20">
+            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black border-2 ${
+              ['handling', 'resolved'].includes(currentStatus)
+                ? 'bg-blue-500 border-blue-600 text-white'
+                : 'bg-gray-100 border-gray-300 text-gray-400'
+            }`}>
+              2
+            </div>
+            <span className="font-bold text-gray-800 mt-1">Ditangani</span>
+            <span className="text-[7px] text-gray-500 font-mono">
+              {formatTime(alert.handlingAt) || (currentStatus === 'handling' || currentStatus === 'resolved' ? 'Sedang Jalan' : '-')}
+            </span>
+          </div>
+
+          {/* Step 3: Selesai */}
+          <div className="flex flex-col items-center text-center z-10 w-20">
+            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black border-2 ${
+              currentStatus === 'resolved'
+                ? 'bg-green-500 border-green-600 text-white'
+                : 'bg-gray-100 border-gray-300 text-gray-400'
+            }`}>
+              3
+            </div>
+            <span className="font-bold text-gray-800 mt-1">Selesai</span>
+            <span className="text-[7px] text-gray-500 font-mono">
+              {formatTime(alert.resolvedAt) || '-'}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* Status control actions */}
       <div className="flex gap-1.5 justify-end mt-1">

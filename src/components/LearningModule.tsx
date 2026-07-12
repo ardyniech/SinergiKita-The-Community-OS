@@ -2,17 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { BookMarked, Plus, X } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { BookMarked, Plus, X, Loader2 } from 'lucide-react';
 import { SectionHeader } from './atoms/SectionHeader';
 import { LearningItem } from './molecules/LearningItem';
 import { isAdmin } from '../lib/permissions';
 
 export default function LearningModule() {
   const { profile } = useAuth();
+  const { showToast } = useToast();
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newMaterial, setNewMaterial] = useState({ title: '', content: '', category: 'Panduan' });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!profile?.tenantId) return;
@@ -25,19 +28,35 @@ export default function LearningModule() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
-    await addDoc(collection(db, 'learning'), {
-      ...newMaterial,
-      tenantId: profile.tenantId,
-      authorId: profile.uid,
-      authorName: profile.displayName || profile.email,
-      createdAt: serverTimestamp()
-    });
-    setShowAdd(false);
-    setNewMaterial({ title: '', content: '', category: 'Panduan' });
+    if (!profile || submitting) return;
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, 'learning'), {
+        ...newMaterial,
+        tenantId: profile.tenantId,
+        authorId: profile.uid,
+        authorName: profile.displayName || profile.email,
+        createdAt: serverTimestamp()
+      });
+      showToast('Materi pembelajaran berhasil ditambahkan.');
+      setShowAdd(false);
+      setNewMaterial({ title: '', content: '', category: 'Panduan' });
+    } catch (err: any) {
+      console.error("Failed to add learning material:", err);
+      showToast(`Gagal menambahkan materi: ${err.message || 'offline'}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (loading) return <div className="p-8 text-center text-xs text-gray-400 font-bold">Memuat modul pembelajaran...</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2">
+        <Loader2 size={24} className="animate-spin text-blue-500" />
+        <span>Memuat modul pembelajaran...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -92,8 +111,9 @@ export default function LearningModule() {
                 onChange={e => setNewMaterial({...newMaterial, content: e.target.value})}
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-400 resize-none"
               />
-              <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
-                SIMPAN
+              <button type="submit" disabled={submitting} className="w-full py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                {submitting && <Loader2 size={12} className="animate-spin" />}
+                {submitting ? 'MENYIMPAN...' : 'SIMPAN'}
               </button>
             </form>
           </div>

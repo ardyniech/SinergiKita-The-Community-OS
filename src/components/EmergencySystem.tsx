@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { BellRing, ShieldAlert, History, MessageSquare, PhoneCall } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -43,20 +43,47 @@ export default function EmergencySystem() {
     if (!profile) return;
     setIsSending(true);
     try {
+      const senderAddress = profile.address || 'RT 04 / RW 02 Sektor B';
+      const senderName = profile.displayName || profile.email.split('@')[0];
+
       // Create new SOS incident
-      await addDoc(collection(db, 'emergencies'), {
+      const docRef = await addDoc(collection(db, 'emergencies'), {
         type,
-        senderName: profile.displayName || profile.email.split('@')[0],
-        senderAddress: profile.address || 'RT 04 / RW 02 Sektor B',
+        senderName,
+        senderAddress,
         senderId: profile.uid,
         tenantId: profile.tenantId,
         status: 'triggered',
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        triggeredAt: new Date().toISOString()
       });
+
+      // Dispatch Firebase Cloud Messaging push notification to all community admins via backend
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (token) {
+          await fetch('/api/community/emergencies/notify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              id: docRef.id,
+              type,
+              senderName,
+              senderAddress,
+              tenantId: profile.tenantId
+            })
+          });
+        }
+      } catch (fcmErr) {
+        console.error("FCM dispatch helper failed:", fcmErr);
+      }
 
       // Simulation of Instant Push/WA/SMS dispatch to whole neighborhood
       showToast(
-        `🚨 ALARM SOS DI-TRIGGER!\n📲 WhatsApp Gateway mengirim SMS & WA Darurat otomatis ke Sektor Keamanan dan 10 tetangga terdekat Anda!`
+        `🚨 ALARM SOS DI-TRIGGER!\n📲 WhatsApp & FCM Push Notification dikirim otomatis ke Sektor Keamanan dan semua Pengurus Komunitas!`
       );
       
       setShowConfirm(false);

@@ -20,8 +20,10 @@ export default function RealTimeNotifications() {
   useEffect(() => {
     if (!profile?.tenantId || !isAdmin(profile)) return;
 
-    // Listen for NEW social alerts of type incident
-    const q = query(
+    const unsubscribers: (() => void)[] = [];
+
+    // 1. Listen for NEW social alerts of type incident
+    const qSocial = query(
       collection(db, 'social_alerts'),
       where('tenantId', '==', profile.tenantId),
       where('type', '==', 'incident'),
@@ -29,7 +31,7 @@ export default function RealTimeNotifications() {
       limit(1)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeSocial = onSnapshot(qSocial, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           const data = change.doc.data();
@@ -62,10 +64,56 @@ export default function RealTimeNotifications() {
         }
       });
     }, (error) => {
-      console.error("RealTimeNotifications error:", error);
+      console.error("RealTimeNotifications social_alerts error:", error);
     });
+    unsubscribers.push(unsubscribeSocial);
 
-    return () => unsubscribe();
+    // 2. Listen for NEW emergencies (SOS alarms)
+    const qEmergency = query(
+      collection(db, 'emergencies'),
+      where('tenantId', '==', profile.tenantId)
+    );
+
+    const unsubscribeEmergency = onSnapshot(qEmergency, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          const triggeredAtMillis = data.triggeredAt ? new Date(data.triggeredAt).getTime() : 
+                                    (data.timestamp as Timestamp)?.toMillis() || Date.now();
+
+          // Only alert if it's a newly triggered SOS
+          if (triggeredAtMillis > lastSeenRef.current && (!data.status || data.status === 'triggered')) {
+            lastSeenRef.current = Math.max(lastSeenRef.current, triggeredAtMillis);
+
+            // 1. Show Toast Alert
+            showToast(`🚨 ALARM SOS: ${data.senderName} membutuhkan bantuan darurat untuk ${data.type.toUpperCase()}!`);
+
+            // 2. Show Browser Notification with critical urgency settings
+            if (Notification.permission === 'granted') {
+              new Notification(`🚨 PANGGILAN DARURAT: ${data.type.toUpperCase()}`, {
+                body: `Korban: ${data.senderName}\nAlamat: ${data.senderAddress}`,
+                icon: '/assets/logo.png',
+                requireInteraction: true // keep notification on screen
+              });
+            }
+
+            // 3. Play siren audio alarm at high volume
+            try {
+              const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+              audio.volume = 0.8;
+              audio.play().catch(() => {});
+            } catch (e) {
+              console.warn("Emergency audio alert failed:", e);
+            }
+          }
+        }
+      });
+    }, (error) => {
+      console.error("RealTimeNotifications emergencies error:", error);
+    });
+    unsubscribers.push(unsubscribeEmergency);
+
+    return () => unsubscribers.forEach(unsub => unsub());
   }, [profile, showToast]);
 
   return null; // This is a logic-only component

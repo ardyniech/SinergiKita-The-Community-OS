@@ -3,7 +3,7 @@ import { Transaction } from '../types';
 import { useToast } from '../context/ToastContext';
 import { useAudit } from '../context/AuditContext';
 import { useAuth } from '../context/AuthContext';
-import { Download, FileText, Table, Plus, ShieldCheck, Check, AlertCircle, RefreshCw, Send, Users, DollarSign, Wallet } from 'lucide-react';
+import { Download, FileText, Table, Plus, ShieldCheck, Check, AlertCircle, RefreshCw, Send, Users, DollarSign, Wallet, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { collection, query, where, onSnapshot, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
@@ -369,7 +369,14 @@ export default function TransactionLedger() {
 
   const isAdminRole = ['superadmin', 'admin', 'ketua', 'bendahara'].includes(profile?.role || '');
 
-  if (loading) return <div className="p-4 text-center text-xs text-gray-400">Memuat data mutasi...</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-xl shadow-sm border border-gray-100">
+        <Loader2 size={24} className="animate-spin text-indigo-500" />
+        <span>Memuat data mutasi keuangan...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 mb-3">
@@ -463,6 +470,7 @@ export default function TransactionLedger() {
                     <label className="block text-[8px] font-bold uppercase text-gray-400">Jumlah (Rp)</label>
                     <input 
                       type="number" 
+                      inputMode="numeric"
                       required
                       placeholder="Rp" 
                       className="w-full text-xs p-1.5 border border-gray-200 rounded bg-white outline-none"
@@ -676,6 +684,7 @@ export default function TransactionLedger() {
                   <span className="absolute left-2.5 top-2 text-[10px] font-bold text-gray-400">Rp</span>
                   <input
                     type="number"
+                    inputMode="numeric"
                     placeholder="Masukkan saldo riil bank / cash-in-hand"
                     className="w-full text-xs pl-8 pr-2.5 py-1.5 border border-gray-200 bg-white rounded outline-none"
                     value={physicalBalance}

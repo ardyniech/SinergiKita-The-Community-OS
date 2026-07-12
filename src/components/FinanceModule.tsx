@@ -39,26 +39,44 @@ export default function FinanceModule() {
 
   const handleUpdateBudget = async () => {
     if (!profile?.tenantId) return;
-    await updateDoc(doc(db, 'tenants', profile.tenantId), { budgetTotal: Number(tempBudget.total), budgetThreshold: Number(tempBudget.threshold) });
-    addAuditEntry(`Updated budget: Rp ${tempBudget.total}, Threshold ${tempBudget.threshold}%`);
-    showToast('Anggaran diperbarui.');
-    setIsEditingBudget(false);
+    try {
+      await updateDoc(doc(db, 'tenants', profile.tenantId), { budgetTotal: Number(tempBudget.total), budgetThreshold: Number(tempBudget.threshold) });
+      addAuditEntry(`Updated budget: Rp ${tempBudget.total}, Threshold ${tempBudget.threshold}%`);
+      showToast('Anggaran diperbarui.');
+      setIsEditingBudget(false);
+    } catch (err: any) {
+      console.error("Budget update failed:", err);
+      showToast(`Gagal memperbarui anggaran: ${err.message || 'offline'}`);
+    }
   };
 
   const addRecurring = async () => {
     if (!newRecurring.description || !newRecurring.amount || !profile?.tenantId) return;
     setSubmitting(true);
-    await addDoc(collection(db, 'recurring'), {
-      tenantId: profile.tenantId, description: newRecurring.description, amount: Number(newRecurring.amount),
-      status: 'active', nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0], createdAt: serverTimestamp()
-    });
-    showToast('Ditambahkan.');
-    setNewRecurring({ description: '', amount: '' });
-    setIsAddingRecurring(false);
-    setSubmitting(false);
+    try {
+      await addDoc(collection(db, 'recurring'), {
+        tenantId: profile.tenantId, description: newRecurring.description, amount: Number(newRecurring.amount),
+        status: 'active', nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0], createdAt: serverTimestamp()
+      });
+      showToast('Transaksi rutin berhasil ditambahkan.');
+      setNewRecurring({ description: '', amount: '' });
+      setIsAddingRecurring(false);
+    } catch (err: any) {
+      console.error("Adding recurring transaction failed:", err);
+      showToast(`Gagal menambahkan transaksi rutin: ${err.message || 'offline'}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  if (loading) return <div className="p-8 text-center text-[10px] text-gray-400">Memuat modul keuangan...</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-[10px] text-gray-400 flex flex-col items-center justify-center gap-2">
+        <Loader2 size={24} className="animate-spin text-blue-500" />
+        <span>Memuat modul keuangan...</span>
+      </div>
+    );
+  }
   const isThresholdBreached = (budget.spent / budget.total) * 100 >= budget.threshold;
 
   return (
@@ -88,7 +106,7 @@ export default function FinanceModule() {
           {isAddingRecurring && (
             <div className="bg-gray-50 p-3 rounded-xl mb-3 space-y-2 border border-gray-100">
               <input type="text" placeholder="Deskripsi" className="w-full text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.description} onChange={e => setNewRecurring(p => ({ ...p, description: e.target.value }))} />
-              <div className="flex gap-2"><input type="number" placeholder="Rp" className="flex-1 text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.amount} onChange={e => setNewRecurring(p => ({ ...p, amount: e.target.value }))} /><button onClick={addRecurring} disabled={submitting} className="bg-blue-600 text-white px-4 rounded-lg font-black text-[9px] uppercase tracking-widest">{submitting ? <Loader2 size={12} className="animate-spin" /> : 'Simpan'}</button></div>
+              <div className="flex gap-2"><input type="number" inputMode="numeric" placeholder="Rp" className="flex-1 text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.amount} onChange={e => setNewRecurring(p => ({ ...p, amount: e.target.value }))} /><button onClick={addRecurring} disabled={submitting} className="bg-blue-600 text-white px-4 rounded-lg font-black text-[9px] uppercase tracking-widest">{submitting ? <Loader2 size={12} className="animate-spin" /> : 'Simpan'}</button></div>
             </div>
           )}
           <div className="space-y-2">

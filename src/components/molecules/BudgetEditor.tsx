@@ -13,6 +13,7 @@ export function BudgetEditor({ tempBudget, setTempBudget, onUpdate }: BudgetEdit
         <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Total Budget (Rp)</label>
         <input 
           type="number" 
+          inputMode="numeric"
           className="w-full text-xs p-2.5 bg-white border border-blue-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
           value={tempBudget.total}
           onChange={e => setTempBudget((prev: any) => ({ ...prev, total: e.target.value }))}
@@ -23,6 +24,7 @@ export function BudgetEditor({ tempBudget, setTempBudget, onUpdate }: BudgetEdit
         <div className="flex gap-2">
           <input 
             type="number" 
+            inputMode="numeric"
             className="flex-1 text-xs p-2.5 bg-white border border-blue-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-400"
             value={tempBudget.threshold}
             onChange={e => setTempBudget((prev: any) => ({ ...prev, threshold: e.target.value }))}

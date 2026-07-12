@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { Megaphone, Plus, X } from 'lucide-react';
+import { Megaphone, Plus, X, Loader2 } from 'lucide-react';
 import { SectionHeader } from './atoms/SectionHeader';
 import { AnnouncementCard } from './molecules/AnnouncementCard';
 import { isAdmin } from '../lib/permissions';
@@ -36,7 +36,14 @@ export default function AnnouncementsModule() {
     setNewAnn({ title: '', content: '', priority: 'medium' });
   };
 
-  if (loading) return <div className="p-8 text-center text-xs text-gray-400 font-bold">Memuat informasi terbaru...</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2">
+        <Loader2 size={24} className="animate-spin text-orange-500" />
+        <span>Memuat informasi terbaru...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">

@@ -127,7 +127,14 @@ export default function MemberDirectory() {
     total: members.length
   };
 
-  if (loading) return <div className="p-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">Memuat database warga...</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest flex flex-col items-center justify-center gap-2">
+        <Loader2 size={24} className="animate-spin text-blue-500" />
+        <span>Memuat database warga...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

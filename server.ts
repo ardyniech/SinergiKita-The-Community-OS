@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import admin from "firebase-admin";
 import { getAuth } from "firebase-admin/auth";
 import { z } from "zod";
+import { rateLimit } from "express-rate-limit";
 import firebaseConfig from "./firebase-applet-config.json";
 
 // Initialize Firebase Admin SDK for token verification
@@ -65,10 +66,27 @@ async function startServer() {
     }
   };
 
+  // Rate limiter to prevent API abuse (maximum 20 requests per minute per user based on verified Firebase UID)
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    limit: 20, // Limit each user/UID to 20 requests per minute
+    keyGenerator: (req) => {
+      // Use verified Firebase uid from token, or fallback to IP/anonymous
+      return (req as any).user?.uid || req.ip || "anonymous";
+    },
+    handler: (req, res) => {
+      res.status(429).json({
+        error: "Terlalu banyak permintaan (maksimal 20 request per menit per user). Silakan coba lagi nanti."
+      });
+    },
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+  });
+
   // Protect all /api/ai/* and /api/community/* routes, and /api/recommendations
   app.use("/api/recommendations", verifyFirebaseToken);
-  app.use("/api/ai/*", verifyFirebaseToken);
-  app.use("/api/community/*", verifyFirebaseToken);
+  app.use("/api/ai/*", verifyFirebaseToken, apiLimiter);
+  app.use("/api/community/*", verifyFirebaseToken, apiLimiter);
 
   // API routes
   app.get("/api/health", (req, res) => {
@@ -210,7 +228,29 @@ async function startServer() {
 
   app.post("/api/community/smart-tips", express.json(), async (req, res) => {
     try {
-      // Validate request body using Zod
+      // 1. Verify user role & tenant membership securely on the backend
+      const uid = (req as any).user?.uid;
+      if (!uid) {
+        return res.status(401).json({ error: "Unauthorized: Missing user credentials" });
+      }
+
+      const userDoc = await admin.firestore().collection("users").doc(uid).get();
+      if (!userDoc.exists) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
+
+      const userData = userDoc.data();
+      const tenantId = userData?.tenantId;
+      if (!tenantId) {
+        return res.status(400).json({ error: "User is not associated with any community tenant" });
+      }
+
+      const allowedRoles = ['superadmin', 'admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'];
+      if (!allowedRoles.includes(userData?.role || '')) {
+        return res.status(403).json({ error: "Forbidden: Only community administrators can trigger smart tips" });
+      }
+
+      // 2. Validate request body using Zod
       const parsedBody = SmartTipsSchema.safeParse(req.body);
       if (!parsedBody.success) {
         return res.status(400).json({ 
@@ -220,7 +260,24 @@ async function startServer() {
       }
 
       const { incidents, avgResponseTime } = parsedBody.data;
-      
+
+      // 3. Check for cached daily summary to prevent excessive AI costs
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const cacheKey = `${year}-${month}-${day}`;
+      const docId = `${tenantId}_${cacheKey}`;
+
+      const cacheRef = admin.firestore().collection("smart_tips_cache").doc(docId);
+      const cacheSnap = await cacheRef.get();
+
+      if (cacheSnap.exists) {
+        const cachedData = cacheSnap.data();
+        return res.json({ tips: cachedData?.tips, cached: true });
+      }
+
+      // 4. Generate new tips if not cached
       const response = await ai.models.generateContent({
         model: "gemini-3.1-flash-lite",
         contents: `
@@ -256,7 +313,17 @@ async function startServer() {
         }
       });
 
-      res.json(JSON.parse(response.text || '{"tips":[]}'));
+      const tipsData = JSON.parse(response.text || '{"tips":[]}');
+
+      // 5. Store generated tips in cache
+      await cacheRef.set({
+        tenantId,
+        cacheKey,
+        tips: tipsData.tips || [],
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      res.json({ tips: tipsData.tips || [], cached: false });
     } catch (error: any) {
       console.error("Smart Tips Error Details:", error);
       
@@ -266,8 +333,58 @@ async function startServer() {
           { id: "1", title: "Monitor Titik Rawan", description: "Identifikasi area dengan laporan terbanyak untuk patroli lebih intensif.", type: "safety" },
           { id: "2", title: "Target Respon < 15m", description: "Upayakan respon awal di bawah 15 menit untuk meningkatkan kepercayaan warga.", type: "speed" },
           { id: "3", title: "Edukasi Keselamatan", description: "Gunakan Warta Warga untuk menyebarkan tips pencegahan insiden serupa.", type: "general" }
-        ] 
+        ],
+        cached: false
       });
+    }
+  });
+
+  app.post("/api/community/emergencies/notify", express.json(), async (req, res) => {
+    try {
+      const { id, type, senderName, senderAddress, tenantId } = req.body;
+      if (!tenantId || !type || !senderName) {
+        return res.status(400).json({ error: "Missing required emergency fields" });
+      }
+
+      const tokens: string[] = [];
+      const adminsSnapshot = await admin.firestore().collection("users")
+        .where("tenantId", "==", tenantId)
+        .where("role", "in", ['superadmin', 'admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'])
+        .get();
+
+      adminsSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.fcmToken) {
+          tokens.push(data.fcmToken);
+        }
+      });
+
+      console.log(`Sending emergency FCM push notifications to ${tokens.length} admins for tenant ${tenantId}`);
+
+      if (tokens.length > 0) {
+        const message = {
+          notification: {
+            title: `🚨 SOS DARURAT: ${type.toUpperCase()}`,
+            body: `${senderName} membutuhkan bantuan di ${senderAddress || 'Lokasi Komunitas'}`
+          },
+          data: {
+            emergencyId: id || '',
+            type: type,
+            senderName: senderName,
+            senderAddress: senderAddress || ''
+          },
+          tokens: tokens
+        };
+
+        const response = await admin.messaging().sendEachForMulticast(message);
+        console.log(`FCM Multicast delivery completed. Success: ${response.successCount}, Failure: ${response.failureCount}`);
+        return res.json({ success: true, sentCount: tokens.length, successCount: response.successCount });
+      }
+
+      return res.json({ success: true, sentCount: 0, message: "No registered FCM admin tokens found, notifications routed via standard real-time channels." });
+    } catch (error: any) {
+      console.error("FCM Emergency Notify Error Details:", error);
+      return res.status(500).json({ error: `Failed to dispatch push notification: ${error.message}` });
     }
   });
 

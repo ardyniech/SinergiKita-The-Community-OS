@@ -30,17 +30,40 @@ export default function KoperasiModule() {
   const handleSubmit = async (type: 'deposit' | 'loan') => {
     if (!profile?.tenantId || !amount || submitting) return;
     setSubmitting(true);
-    await addDoc(collection(db, 'koperasi'), { tenantId: profile.tenantId, uid: profile.uid, userName: profile.displayName || profile.email.split('@')[0], type, amount: Number(amount), note, status: type === 'deposit' ? 'completed' : 'pending', timestamp: serverTimestamp() });
-    showToast(type === 'deposit' ? "Setoran berhasil!" : "Pinjaman terkirim!");
-    setAmount(''); setNote('');
-    if (type === 'loan') setActiveTab('history');
-    setSubmitting(false);
+    try {
+      await addDoc(collection(db, 'koperasi'), { 
+        tenantId: profile.tenantId, 
+        uid: profile.uid, 
+        userName: profile.displayName || profile.email.split('@')[0], 
+        type, 
+        amount: Number(amount), 
+        note, 
+        status: type === 'deposit' ? 'completed' : 'pending', 
+        timestamp: serverTimestamp() 
+      });
+      showToast(type === 'deposit' ? "Setoran berhasil disimpan!" : "Pinjaman berhasil diajukan!");
+      setAmount(''); 
+      setNote('');
+      if (type === 'loan') setActiveTab('history');
+    } catch (err: any) {
+      console.error("Koperasi submission failed:", err);
+      showToast(`Gagal mengirim data. Silakan periksa koneksi Anda dan coba lagi. Error: ${err.message || 'offline'}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const totalS = records.filter(r => r.type === 'deposit' && r.status === 'completed').reduce((sum, r) => sum + r.amount, 0);
   const totalP = records.filter(r => r.type === 'loan' && r.status === 'completed').reduce((sum, r) => sum + r.amount, 0);
 
-  if (loading) return <div className="p-8 text-center text-xs text-gray-400">Memuat data...</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2">
+        <Loader2 size={24} className="animate-spin text-indigo-500" />
+        <span>Memuat data koperasi...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 overflow-hidden">
@@ -48,8 +71,8 @@ export default function KoperasiModule() {
       <div className="grid grid-cols-3 gap-3 mb-6"><KoperasiStatCard label="Total Simpanan" value={`Rp ${totalS.toLocaleString()}`} icon={PiggyBank} color="text-green-600" /><KoperasiStatCard label="Total Pinjaman" value={`Rp ${totalP.toLocaleString()}`} icon={ArrowUpRight} color="text-red-600" /><KoperasiStatCard label="Sisa SHU" value="Rp 0" icon={Wallet} color="text-blue-600" /></div>
       <KoperasiTabs activeTab={activeTab} onTabChange={setActiveTab} />
       <AnimatePresence mode="wait"><motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-        {activeTab === 'save' && <div className="p-4 bg-green-50 rounded-2xl border border-green-100"><h3 className="text-xs font-bold text-green-800 mb-2 uppercase tracking-widest">Setoran Baru</h3><div className="space-y-3"><input type="number" placeholder="Rp" className="w-full p-3 rounded-xl border border-green-200 text-sm outline-none" value={amount} onChange={e => setAmount(e.target.value)} /><button onClick={() => handleSubmit('deposit')} disabled={submitting} className="w-full py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">{submitting && <Loader2 size={14} className="animate-spin" />}Setor</button></div></div>}
-        {activeTab === 'loan' && <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100"><h3 className="text-xs font-bold text-orange-800 mb-2 uppercase tracking-widest">Pinjaman Baru</h3><div className="space-y-3"><input type="number" placeholder="Rp" className="w-full p-3 rounded-xl border border-orange-200 text-sm outline-none" value={amount} onChange={e => setAmount(e.target.value)} /><textarea placeholder="Alasan..." className="w-full p-3 rounded-xl border border-orange-200 text-sm h-20 outline-none" value={note} onChange={e => setNote(e.target.value)} /><button onClick={() => handleSubmit('loan')} disabled={submitting} className="w-full py-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">{submitting && <Loader2 size={14} className="animate-spin" />}Ajukan</button></div></div>}
+        {activeTab === 'save' && <div className="p-4 bg-green-50 rounded-2xl border border-green-100"><h3 className="text-xs font-bold text-green-800 mb-2 uppercase tracking-widest">Setoran Baru</h3><div className="space-y-3"><input type="number" inputMode="numeric" placeholder="Rp" className="w-full p-3 rounded-xl border border-green-200 text-sm outline-none" value={amount} onChange={e => setAmount(e.target.value)} /><button onClick={() => handleSubmit('deposit')} disabled={submitting} className="w-full py-3 bg-green-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">{submitting && <Loader2 size={14} className="animate-spin" />}Setor</button></div></div>}
+        {activeTab === 'loan' && <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100"><h3 className="text-xs font-bold text-orange-800 mb-2 uppercase tracking-widest">Pinjaman Baru</h3><div className="space-y-3"><input type="number" inputMode="numeric" placeholder="Rp" className="w-full p-3 rounded-xl border border-orange-200 text-sm outline-none" value={amount} onChange={e => setAmount(e.target.value)} /><textarea placeholder="Alasan..." className="w-full p-3 rounded-xl border border-orange-200 text-sm h-20 outline-none" value={note} onChange={e => setNote(e.target.value)} /><button onClick={() => handleSubmit('loan')} disabled={submitting} className="w-full py-3 bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">{submitting && <Loader2 size={14} className="animate-spin" />}Ajukan</button></div></div>}
         {activeTab === 'history' && <div className="space-y-2">{records.length === 0 && <p className="text-center text-[10px] text-gray-400 py-4 italic">Belum ada transaksi.</p>}{records.map(h => <KoperasiHistoryItem key={h.id} record={h} />)}</div>}
       </motion.div></AnimatePresence>
     </div>

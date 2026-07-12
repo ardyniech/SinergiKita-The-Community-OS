@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Search, History } from 'lucide-react';
+import { ShoppingCart, Search, History, Loader2 } from 'lucide-react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +22,14 @@ export default function POSModule() {
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  if (loading) return <div className="p-8 text-center text-xs text-gray-400">Memuat sistem kasir...</div>;
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2">
+        <Loader2 size={24} className="animate-spin text-orange-500" />
+        <span>Memuat sistem kasir...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100">

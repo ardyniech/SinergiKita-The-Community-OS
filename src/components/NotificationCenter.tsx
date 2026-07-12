@@ -10,7 +10,7 @@ type NotificationItem = {
   id: string;
   title: string;
   description: string;
-  type: 'approval' | 'update' | 'request';
+  type: 'approval' | 'update' | 'request' | 'emergency';
   link?: string;
 };
 
@@ -104,6 +104,34 @@ export default function NotificationCenter() {
       unsubscribers.push(unsub);
     }
 
+    // 4. All Members/Admins: Active emergencies subscription
+    if (profile.tenantId && profile.isApproved) {
+      const q = query(
+        collection(db, 'emergencies'),
+        where('tenantId', '==', profile.tenantId)
+      );
+      const unsub = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs
+          .filter(doc => doc.data().status !== 'resolved')
+          .map(doc => {
+            const data = doc.data();
+            const statusLabel = data.status === 'triggered' ? 'SIAGA' :
+                               data.status === 'accepted' ? 'DIRESPON' :
+                               data.status === 'handling' ? 'DITANGANI' : 'SIAGA';
+            return {
+              id: `emergency-${doc.id}`,
+              title: `🚨 PANGGILAN SOS [${statusLabel}]`,
+              description: `${data.senderName} melaporkan ${data.type.toUpperCase()} di ${data.senderAddress || 'Lokasi Sektor'}`,
+              type: 'emergency' as const
+            };
+          });
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('emergency-')), ...items]);
+      }, (error) => {
+        console.error("NotificationCenter emergency subscription error:", error);
+      });
+      unsubscribers.push(unsub);
+    }
+
     return () => unsubscribers.forEach(unsub => unsub());
   }, [profile]);
 
@@ -145,16 +173,23 @@ export default function NotificationCenter() {
                     {notifications.map(n => (
                       <div 
                         key={n.id}
-                        className="p-3 border-b border-gray-50 hover:bg-blue-50/30 transition-colors cursor-pointer group"
+                        className={`p-3 border-b border-gray-50 hover:bg-blue-50/30 transition-colors cursor-pointer group ${
+                          n.type === 'emergency' ? 'bg-rose-50/50 hover:bg-rose-50' : ''
+                        }`}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <div className={`w-1.5 h-1.5 rounded-full ${
+                            n.type === 'emergency' ? 'bg-red-600 animate-pulse' :
                             n.type === 'approval' ? 'bg-orange-500' : 
                             n.type === 'request' ? 'bg-blue-500' : 'bg-green-500'
                           }`} />
-                          <p className="text-[11px] font-bold text-gray-900">{n.title}</p>
+                          <p className={`text-[11px] font-bold ${
+                            n.type === 'emergency' ? 'text-red-700' : 'text-gray-900'
+                          }`}>{n.title}</p>
                         </div>
-                        <p className="text-[10px] text-gray-600 leading-relaxed">{n.description}</p>
+                        <p className={`text-[10px] leading-relaxed ${
+                          n.type === 'emergency' ? 'text-red-900 font-medium' : 'text-gray-600'
+                        }`}>{n.description}</p>
                       </div>
                     ))}
                   </div>

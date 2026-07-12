@@ -39,6 +39,7 @@ export function MarketplaceForm({ newItem, setNewItem, onSubmit, onCancel, categ
           <input
             required
             type="number"
+            inputMode="numeric"
             value={newItem.price}
             onChange={e => setNewItem({ ...newItem, price: e.target.value })}
             className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2.5 text-xs focus:ring-1 focus:ring-blue-500 outline-none"

@@ -19,14 +19,14 @@ service cloud.firestore {
     function isSuperAdmin() {
       return isSignedIn() && (
         request.auth.token.email in ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'] ||
-        (hasUserData() && getUserData().role == 'superadmin')
+        (hasUserData() && getUserData().role == 'superadmin' && getUserData().isApproved == true)
       );
     }
     
     function isAdmin() {
       return isSignedIn() && (
         isSuperAdmin() || 
-        (hasUserData() && getUserData().role in ['admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'])
+        (hasUserData() && getUserData().role in ['admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'] && getUserData().isApproved == true)
       );
     }
 
@@ -154,10 +154,10 @@ service cloud.firestore {
     // Koperasi
     // ---------------------------------------------------------
     match /koperasi/{id} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
-      allow list: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.uid || (isAdmin() && isMemberOf(resource.data.tenantId)));
+      allow list: if isSignedIn() && (resource.data.uid == request.auth.uid || (isAdmin() && isMemberOf(resource.data.tenantId)));
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow update: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
