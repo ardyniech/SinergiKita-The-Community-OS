@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -15,12 +15,27 @@ export default function TenantSetup() {
   const [name, setName] = useState('');
   const [tenantType, setTenantType] = useState('rt-rw');
   const [tenantId, setTenantId] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      if (profile.displayName && !displayName) setDisplayName(profile.displayName);
+      if (profile.phoneNumber && !phoneNumber) setPhoneNumber(profile.phoneNumber);
+      if (profile.address && !address) setAddress(profile.address);
+    }
+  }, [profile]);
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     if (!profile || !name.trim()) return;
+    if (!displayName.trim() || !phoneNumber.trim() || !address.trim()) {
+      showToast("Mohon lengkapi semua Informasi Warga Anda.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -33,11 +48,14 @@ export default function TenantSetup() {
         enabledModules: ['emergency', 'finance', 'social', 'directory'] // default modules
       });
 
-      // Link user to the pending tenant
+      // Link user to the pending tenant and save contact info
       await updateDoc(doc(db, 'users', profile.uid), {
         tenantId: docRef.id,
         role: 'admin',
-        isApproved: false
+        isApproved: false,
+        displayName: displayName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        address: address.trim()
       });
 
       setSubmitted(true);
@@ -51,6 +69,10 @@ export default function TenantSetup() {
   const handleJoin = async (e: FormEvent) => {
     e.preventDefault();
     if (!profile || !tenantId.trim()) return;
+    if (!displayName.trim() || !phoneNumber.trim() || !address.trim()) {
+      showToast("Mohon lengkapi semua Informasi Warga Anda.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -61,10 +83,14 @@ export default function TenantSetup() {
         return;
       }
 
+      // Link user to community and save contact info
       await updateDoc(doc(db, 'users', profile.uid), {
         tenantId: tenantId.trim(),
         role: 'member',
-        isApproved: false
+        isApproved: false,
+        displayName: displayName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        address: address.trim()
       });
       showToast("Permintaan bergabung dikirim.");
     } catch (err) {
@@ -196,6 +222,47 @@ export default function TenantSetup() {
             />
           </div>
         )}
+
+        {/* 2. Integration: Direct Phone/WA/Address enrollment for new residents */}
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-2">Data Diri Anda (Wajib Terisi)</h3>
+          
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Lengkap</label>
+            <input 
+              type="text" 
+              required
+              placeholder="Nama lengkap sesuai KTP"
+              className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nomor WhatsApp Aktif</label>
+            <input 
+              type="tel" 
+              required
+              placeholder="Contoh: 08123456789"
+              className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              value={phoneNumber}
+              onChange={e => setPhoneNumber(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nomor Rumah / Sektor</label>
+            <input 
+              type="text" 
+              required
+              placeholder="Contoh: Blok B / No. 12"
+              className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              value={address}
+              onChange={e => setAddress(e.target.value)}
+            />
+          </div>
+        </div>
 
         <button 
           disabled={loading}

@@ -8,7 +8,7 @@ interface MemberCardProps {
   member: AppUser;
   isAdmin: boolean;
   onEdit: (member: AppUser) => void;
-  onMessage: (name: string) => void;
+  onMessage: (name: string, phoneNumber?: string) => void;
 }
 
 export const MemberCard: React.FC<MemberCardProps> = ({ member, isAdmin, onEdit, onMessage }) => {
@@ -83,7 +83,7 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, isAdmin, onEdit,
               <Edit3 size={14} /> <span className="sm:hidden text-[10px] font-bold">Edit</span>
             </button>
           )}
-          <button onClick={() => onMessage(member.displayName || member.email)} className="flex-1 sm:flex-none p-2 bg-white text-green-600 rounded-xl shadow-sm border border-gray-100 hover:bg-green-50 flex items-center justify-center gap-2">
+          <button onClick={() => onMessage(member.displayName || member.email, member.phoneNumber)} className="flex-1 sm:flex-none p-2 bg-white text-green-600 rounded-xl shadow-sm border border-gray-100 hover:bg-green-50 flex items-center justify-center gap-2">
             <MessageCircle size={14} /> <span className="sm:hidden text-[10px] font-bold">Pesan</span>
           </button>
         </div>
