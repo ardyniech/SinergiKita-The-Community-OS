@@ -78,7 +78,7 @@ async function startServer() {
   app.get("/api/recommendations", async (req, res) => {
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-flash-lite",
         contents: "You are an expert community administrator for 'SinergiKita', a platform for grassroots community synergy. Based on general community needs (transparency, finance, social welfare), provide 3 short, actionable recommendations for a community leader. Format as JSON: array of {id, title, description}.",
         config: {
           responseMimeType: "application/json",
@@ -176,7 +176,7 @@ async function startServer() {
       `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-flash-lite",
         contents: prompt,
       });
 
@@ -222,7 +222,7 @@ async function startServer() {
       const { incidents, avgResponseTime } = parsedBody.data;
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-flash-lite",
         contents: `
           You are a Community Health Analyst for SinergiKita. Based on the following incident data and average response time, provide 3-4 highly actionable "Smart Tips" (Tips Cerdas) in Indonesian to improve community safety and responsiveness.
           

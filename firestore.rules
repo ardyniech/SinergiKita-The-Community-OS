@@ -73,8 +73,22 @@ service cloud.firestore {
       );
       
       allow update: if isSignedIn() && (
-        request.auth.uid == userId || 
-        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId)
+        // Case 1: Owner updating their own non-sensitive fields when already in a community
+        (request.auth.uid == userId && 
+         resource.data.tenantId != null && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'address', 'photoURL', 'email', 'updatedAt', 'observations', 'status'])) ||
+         
+        // Case 2: Owner joining or creating a community for the first time (when tenantId is null/absent)
+        (request.auth.uid == userId && 
+         (!resource.data.keys().hasAll(['tenantId']) || resource.data.tenantId == null) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tenantId', 'role', 'isApproved', 'displayName', 'phoneNumber', 'address', 'photoURL', 'email', 'updatedAt', 'status']) &&
+         request.resource.data.isApproved == false) ||
+         
+        // Case 3: Admin of the community updating member details
+        (isAdmin() && 
+         hasUserData() && 
+         resource.data.tenantId == getUserData().tenantId &&
+         request.resource.data.tenantId == resource.data.tenantId)
       );
     }
 
@@ -84,7 +98,8 @@ service cloud.firestore {
     match /transactions/{id} {
       allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+      allow create: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
@@ -113,7 +128,8 @@ service cloud.firestore {
     match /recurring/{id} {
       allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+      allow create: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
