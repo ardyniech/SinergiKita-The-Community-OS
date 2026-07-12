@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, limit, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, ShieldCheck, Zap, Users, Info, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -39,9 +39,15 @@ export default function SmartTipsCard() {
     if (!profile?.tenantId) return;
     
     try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+
       const res = await fetch('/api/community/smart-tips', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           incidents: incidents.map(i => ({
             title: i.title,

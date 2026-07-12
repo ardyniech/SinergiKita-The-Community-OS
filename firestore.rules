@@ -62,19 +62,19 @@ service cloud.firestore {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       // Allow list/query of users if admin, or if matching the user's verified email (for invitations)
       allow list: if isSignedIn() && (
-        (isAdmin() && resource.data.tenantId == getUserData().tenantId) ||
+        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId) ||
         resource.data.email == request.auth.token.email
       );
       
       // Allow profile creation for self, or registration by admin
       allow create: if isSignedIn() && (
         request.auth.uid == userId || 
-        (isAdmin() && request.resource.data.tenantId == getUserData().tenantId)
+        (isAdmin() && hasUserData() && request.resource.data.tenantId == getUserData().tenantId)
       );
       
       allow update: if isSignedIn() && (
         request.auth.uid == userId || 
-        (isAdmin() && resource.data.tenantId == getUserData().tenantId)
+        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId)
       );
     }
 
@@ -141,7 +141,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && (request.auth.uid == resource.data.uid || isAdmin());
       allow list: if isSignedIn() && (resource.data.uid == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow update: if isAdmin() && isMemberOf(resource.data.tenantId);
+      allow update: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
@@ -185,9 +185,9 @@ service cloud.firestore {
     // Audit Logs
     // ---------------------------------------------------------
     match /audit_logs/{id} {
-      allow read: if isAdmin() && resource.data.tenantId == getUserData().tenantId;
-      allow list: if isAdmin() && resource.data.tenantId == getUserData().tenantId;
-      allow create: if isSignedIn() && request.resource.data.tenantId == getUserData().tenantId;
+      allow read: if isAdmin() && (isSuperAdmin() || (hasUserData() && resource.data.tenantId == getUserData().tenantId));
+      allow list: if isAdmin() && (isSuperAdmin() || (hasUserData() && resource.data.tenantId == getUserData().tenantId));
+      allow create: if isSignedIn() && (isSuperAdmin() || (hasUserData() && request.resource.data.tenantId == getUserData().tenantId));
     }
   }
 }

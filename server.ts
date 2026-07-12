@@ -1,7 +1,38 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import admin from "firebase-admin";
+import { getAuth } from "firebase-admin/auth";
+import { z } from "zod";
+import firebaseConfig from "./firebase-applet-config.json";
+
+// Initialize Firebase Admin SDK for token verification
+admin.initializeApp({
+  projectId: firebaseConfig.projectId,
+});
+
+// Zod schemas for input validation
+const InsightsSchema = z.object({
+  data: z.object({
+    memberCount: z.number().int().nonnegative(),
+    balance: z.number(), // balance can be negative or positive
+    transactionCount: z.number().int().nonnegative(),
+    announcementCount: z.number().int().nonnegative(),
+    projectCount: z.number().int().nonnegative(),
+    inventoryCount: z.number().int().nonnegative(),
+  }),
+});
+
+const SmartTipsSchema = z.object({
+  incidents: z.array(z.object({
+    title: z.string().min(1),
+    severity: z.string(),
+    createdAt: z.string(),
+  })),
+  avgResponseTime: z.number(), // checks numeric type
+});
 
 async function startServer() {
   const app = express();
@@ -15,6 +46,28 @@ async function startServer() {
       }
     }
   });
+
+  // Authentication middleware: verifikasi Firebase ID token
+  const verifyFirebaseToken: express.RequestHandler = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: Missing or invalid token" });
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+    try {
+      const decodedToken = await getAuth().verifyIdToken(idToken);
+      (req as any).user = decodedToken;
+      next();
+    } catch (error: any) {
+      console.error("Firebase ID Token Verification Failed:", error);
+      return res.status(401).json({ error: "Unauthorized: Invalid token" });
+    }
+  };
+
+  // Protect all /api/ai/* and /api/community/* routes
+  app.use("/api/ai/*", verifyFirebaseToken);
+  app.use("/api/community/*", verifyFirebaseToken);
 
   // API routes
   app.get("/api/health", (req, res) => {
@@ -52,7 +105,16 @@ async function startServer() {
 
   app.post("/api/ai/insights", express.json(), async (req, res) => {
     try {
-      const { data } = req.body;
+      // Validate request body using Zod
+      const parsedBody = InsightsSchema.safeParse(req.body);
+      if (!parsedBody.success) {
+        return res.status(400).json({ 
+          error: "Format data input tidak valid", 
+          details: parsedBody.error.issues 
+        });
+      }
+
+      const { data } = parsedBody.data;
       const prompt = `
         You are a community analyst for SinergiKita. Analyze the following community data and provide a concise weekly executive summary in Indonesian.
         Include sections for:
@@ -96,7 +158,16 @@ async function startServer() {
 
   app.post("/api/community/smart-tips", express.json(), async (req, res) => {
     try {
-      const { incidents, avgResponseTime } = req.body;
+      // Validate request body using Zod
+      const parsedBody = SmartTipsSchema.safeParse(req.body);
+      if (!parsedBody.success) {
+        return res.status(400).json({ 
+          error: "Format data input tidak valid", 
+          details: parsedBody.error.issues 
+        });
+      }
+
+      const { incidents, avgResponseTime } = parsedBody.data;
       
       const response = await ai.models.generateContent({
         model: "gemini-3.1-flash-lite",

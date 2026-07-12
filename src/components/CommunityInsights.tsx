@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, auth } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, Loader2, RefreshCcw, TrendingUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -61,9 +61,15 @@ export default function CommunityInsights() {
     setLoading(true);
     setError(null);
     try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+
       const response = await fetch('/api/ai/insights', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ data: stats })
       });
       const result = await response.json();
