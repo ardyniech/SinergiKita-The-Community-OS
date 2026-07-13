@@ -13,34 +13,61 @@ export default function AnnouncementsModule() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newAnn, setNewAnn] = useState({ title: '', content: '', priority: 'medium' as any });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile?.tenantId) return;
+    setError(null);
     const q = query(collection(db, 'announcements'), where('tenantId', '==', profile.tenantId));
-    return onSnapshot(q, (snap) => {
-      setAnnouncements(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
+    return onSnapshot(q, 
+      (snap) => {
+        setAnnouncements(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Announcements subscription failed:", err);
+        setError("Gagal menyinkronkan pengumuman secara real-time.");
+        setLoading(false);
+      }
+    );
   }, [profile?.tenantId]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
-    await addDoc(collection(db, 'announcements'), {
-      ...newAnn,
-      tenantId: profile.tenantId,
-      authorName: profile.displayName || profile.email,
-      createdAt: serverTimestamp()
-    });
-    setShowAdd(false);
-    setNewAnn({ title: '', content: '', priority: 'medium' });
+    try {
+      await addDoc(collection(db, 'announcements'), {
+        ...newAnn,
+        tenantId: profile.tenantId,
+        authorName: profile.displayName || profile.email,
+        createdAt: serverTimestamp()
+      });
+      setShowAdd(false);
+      setNewAnn({ title: '', content: '', priority: 'medium' });
+    } catch (err: any) {
+      console.error("Gagal menambahkan pengumuman:", err);
+    }
   };
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2">
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100">
         <Loader2 size={24} className="animate-spin text-orange-500" />
         <span>Memuat informasi terbaru...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+        <p className="font-bold">{error}</p>
+        <button 
+          onClick={() => { setLoading(true); setError(null); }} 
+          className="px-4 py-2 bg-orange-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-orange-700 transition-all min-h-[44px]"
+        >
+          Coba Lagi
+        </button>
       </div>
     );
   }

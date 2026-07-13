@@ -28,7 +28,7 @@ export const Button = ({
   return (
     <button 
       className={`
-        px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest 
+        px-4 py-3 min-h-[44px] rounded-2xl text-[10px] font-black uppercase tracking-widest 
         flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50
         ${variants[variant]} 
         ${fullWidth ? 'w-full' : ''} 

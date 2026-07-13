@@ -28,6 +28,7 @@ export interface AppUser {
   phoneNumber?: string;
   address?: string;
   displayName?: string;
+  photoURL?: string;
   // Advanced Management
   rating?: number;
   skills?: string[];

@@ -5,14 +5,18 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import admin from "firebase-admin";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { rateLimit } from "express-rate-limit";
 import firebaseConfig from "./firebase-applet-config.json";
 
 // Initialize Firebase Admin SDK for token verification
-admin.initializeApp({
+const firebaseApp = admin.initializeApp({
   projectId: firebaseConfig.projectId,
 });
+
+// Initialize Firestore with custom databaseId
+const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
 
 // Zod schemas for input validation
 const InsightsSchema = z.object({
@@ -70,6 +74,7 @@ async function startServer() {
   const apiLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     limit: 20, // Limit each user/UID to 20 requests per minute
+    validate: { ip: false },
     keyGenerator: (req) => {
       // Use verified Firebase uid from token, or fallback to IP/anonymous
       return (req as any).user?.uid || req.ip || "anonymous";
@@ -130,7 +135,7 @@ async function startServer() {
         return res.status(401).json({ error: "Unauthorized: Missing user credentials" });
       }
 
-      const userDoc = await admin.firestore().collection("users").doc(uid).get();
+      const userDoc = await db.collection("users").doc(uid).get();
       if (!userDoc.exists) {
         return res.status(404).json({ error: "User profile not found" });
       }
@@ -165,7 +170,7 @@ async function startServer() {
       const cacheKey = `${now.getFullYear()}-W${weekNumber}`;
       const docId = `${tenantId}_${cacheKey}`;
 
-      const cacheRef = admin.firestore().collection("insights_cache").doc(docId);
+      const cacheRef = db.collection("insights_cache").doc(docId);
       const cacheSnap = await cacheRef.get();
 
       if (cacheSnap.exists) {
@@ -206,7 +211,7 @@ async function startServer() {
         cacheKey,
         summary: summaryText,
         stats: data,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
+        createdAt: FieldValue.serverTimestamp()
       });
 
       res.json({ summary: summaryText, cached: false });
@@ -234,7 +239,7 @@ async function startServer() {
         return res.status(401).json({ error: "Unauthorized: Missing user credentials" });
       }
 
-      const userDoc = await admin.firestore().collection("users").doc(uid).get();
+      const userDoc = await db.collection("users").doc(uid).get();
       if (!userDoc.exists) {
         return res.status(404).json({ error: "User profile not found" });
       }
@@ -269,7 +274,7 @@ async function startServer() {
       const cacheKey = `${year}-${month}-${day}`;
       const docId = `${tenantId}_${cacheKey}`;
 
-      const cacheRef = admin.firestore().collection("smart_tips_cache").doc(docId);
+      const cacheRef = db.collection("smart_tips_cache").doc(docId);
       const cacheSnap = await cacheRef.get();
 
       if (cacheSnap.exists) {
@@ -320,7 +325,7 @@ async function startServer() {
         tenantId,
         cacheKey,
         tips: tipsData.tips || [],
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
+        createdAt: FieldValue.serverTimestamp()
       });
 
       res.json({ tips: tipsData.tips || [], cached: false });
@@ -347,7 +352,7 @@ async function startServer() {
       }
 
       const tokens: string[] = [];
-      const adminsSnapshot = await admin.firestore().collection("users")
+      const adminsSnapshot = await db.collection("users")
         .where("tenantId", "==", tenantId)
         .where("role", "in", ['superadmin', 'admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'])
         .get();
@@ -376,9 +381,18 @@ async function startServer() {
           tokens: tokens
         };
 
-        const response = await admin.messaging().sendEachForMulticast(message);
-        console.log(`FCM Multicast delivery completed. Success: ${response.successCount}, Failure: ${response.failureCount}`);
-        return res.json({ success: true, sentCount: tokens.length, successCount: response.successCount });
+        try {
+          const response = await admin.messaging().sendEachForMulticast(message);
+          console.log(`FCM Multicast delivery completed. Success: ${response.successCount}, Failure: ${response.failureCount}`);
+          return res.json({ success: true, sentCount: tokens.length, successCount: response.successCount });
+        } catch (fcmErr: any) {
+          console.warn("FCM Dispatch failed, falling back to standard notification channels:", fcmErr);
+          return res.json({ 
+            success: true, 
+            sentCount: tokens.length, 
+            message: `FCM dispatch unavailable (${fcmErr.message}). Notifications routed via real-time channels.` 
+          });
+        }
       }
 
       return res.json({ success: true, sentCount: 0, message: "No registered FCM admin tokens found, notifications routed via standard real-time channels." });

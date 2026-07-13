@@ -10,23 +10,46 @@ export default function POSModule() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile?.tenantId) return;
+    setError(null);
     const q = query(collection(db, 'products'), where('tenantId', '==', profile.tenantId));
-    return onSnapshot(q, (snap) => {
-      setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
+    return onSnapshot(q, 
+      (snap) => {
+        setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error("POS subscription failed:", err);
+        setError("Gagal sinkronisasi data produk kasir.");
+        setLoading(false);
+      }
+    );
   }, [profile?.tenantId]);
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2">
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-[40px] border border-gray-100">
         <Loader2 size={24} className="animate-spin text-orange-500" />
         <span>Memuat sistem kasir...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-xs text-red-500 bg-white rounded-[40px] border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+        <p className="font-bold">{error}</p>
+        <button 
+          onClick={() => { setLoading(true); setError(null); }} 
+          className="px-4 py-2 bg-orange-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-orange-700 transition-all min-h-[44px]"
+        >
+          Coba Lagi
+        </button>
       </div>
     );
   }

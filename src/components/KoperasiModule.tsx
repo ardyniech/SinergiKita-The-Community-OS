@@ -18,13 +18,23 @@ export default function KoperasiModule() {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile?.tenantId) return;
-    return onSnapshot(query(collection(db, 'koperasi'), where('tenantId', '==', profile.tenantId), orderBy('timestamp', 'desc')), (snap) => {
-      setRecords(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
+    setError(null);
+    return onSnapshot(
+      query(collection(db, 'koperasi'), where('tenantId', '==', profile.tenantId), orderBy('timestamp', 'desc')), 
+      (snap) => {
+        setRecords(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Koperasi subscription failed:", err);
+        setError("Gagal memuat data koperasi dari database secara real-time.");
+        setLoading(false);
+      }
+    );
   }, [profile?.tenantId]);
 
   const handleSubmit = async (type: 'deposit' | 'loan') => {
@@ -58,9 +68,23 @@ export default function KoperasiModule() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2">
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100">
         <Loader2 size={24} className="animate-spin text-indigo-500" />
         <span>Memuat data koperasi...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+        <p className="font-bold">{error}</p>
+        <button 
+          onClick={() => { setLoading(true); setError(null); }} 
+          className="px-4 py-2 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-indigo-700 transition-all min-h-[44px]"
+        >
+          Coba Lagi
+        </button>
       </div>
     );
   }

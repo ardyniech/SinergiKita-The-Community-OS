@@ -24,34 +24,40 @@ export default function CommunityInsights() {
 
     // Fetch snapshot of counts for the summary
     const fetchCounts = async () => {
-      const qMembers = query(collection(db, 'users'), where('tenantId', '==', profile.tenantId));
-      const qTransactions = query(collection(db, 'transactions'), where('tenantId', '==', profile.tenantId));
-      const qAnnouncements = query(collection(db, 'announcements'), where('tenantId', '==', profile.tenantId));
-      const qProjects = query(collection(db, 'projects'), where('tenantId', '==', profile.tenantId));
-      const qProducts = query(collection(db, 'products'), where('tenantId', '==', profile.tenantId));
+      try {
+        setError(null);
+        const qMembers = query(collection(db, 'users'), where('tenantId', '==', profile.tenantId));
+        const qTransactions = query(collection(db, 'transactions'), where('tenantId', '==', profile.tenantId));
+        const qAnnouncements = query(collection(db, 'announcements'), where('tenantId', '==', profile.tenantId));
+        const qProjects = query(collection(db, 'projects'), where('tenantId', '==', profile.tenantId));
+        const qProducts = query(collection(db, 'products'), where('tenantId', '==', profile.tenantId));
 
-      const [members, transactions, announcements, projects, products] = await Promise.all([
-        getDocs(qMembers),
-        getDocs(qTransactions),
-        getDocs(qAnnouncements),
-        getDocs(qProjects),
-        getDocs(qProducts)
-      ]);
+        const [members, transactions, announcements, projects, products] = await Promise.all([
+          getDocs(qMembers),
+          getDocs(qTransactions),
+          getDocs(qAnnouncements),
+          getDocs(qProjects),
+          getDocs(qProducts)
+        ]);
 
-      let totalBalance = 0;
-      transactions.forEach(doc => {
-        const d = doc.data();
-        totalBalance += d.type === 'credit' ? d.amount : -d.amount;
-      });
+        let totalBalance = 0;
+        transactions.forEach(doc => {
+          const d = doc.data();
+          totalBalance += d.type === 'credit' ? d.amount : -d.amount;
+        });
 
-      setStats({
-        memberCount: members.size,
-        balance: totalBalance,
-        transactionCount: transactions.size,
-        announcementCount: announcements.size,
-        projectCount: projects.size,
-        inventoryCount: products.size
-      });
+        setStats({
+          memberCount: members.size,
+          balance: totalBalance,
+          transactionCount: transactions.size,
+          announcementCount: announcements.size,
+          projectCount: projects.size,
+          inventoryCount: products.size
+        });
+      } catch (err: any) {
+        console.error("Gagal memuat data statistik komunitas:", err);
+        setError("Gagal memuat data statistik komunitas. Silakan periksa koneksi internet Anda.");
+      }
     };
 
     fetchCounts();

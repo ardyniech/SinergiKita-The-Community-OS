@@ -24,14 +24,23 @@ export default function FinanceModule() {
   const [isAddingRecurring, setIsAddingRecurring] = useState(false);
   const [newRecurring, setNewRecurring] = useState({ description: '', amount: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile?.tenantId) return;
+    setError(null);
     const unsubT = onSnapshot(doc(db, 'tenants', profile.tenantId), (s) => {
       if (s.exists()) setBudget({ spent: s.data().spent || 0, total: s.data().budgetTotal || 10000000, threshold: s.data().budgetThreshold || 80 });
+    }, (err) => {
+      console.error("Finance tenant budget sub failed:", err);
+      setError("Gagal menyinkronkan data anggaran.");
     });
     const unsubR = onSnapshot(query(collection(db, 'recurring'), where('tenantId', '==', profile.tenantId), orderBy('createdAt', 'desc')), (s) => {
       setRecurring(s.docs.map(d => ({ id: d.id, ...d.data() } as RecurringTransaction)));
+      setLoading(false);
+    }, (err) => {
+      console.error("Finance recurring sub failed:", err);
+      setError("Gagal menyinkronkan transaksi rutin.");
       setLoading(false);
     });
     return () => { unsubT(); unsubR(); };
@@ -71,9 +80,23 @@ export default function FinanceModule() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-[10px] text-gray-400 flex flex-col items-center justify-center gap-2">
+      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100 shadow-sm">
         <Loader2 size={24} className="animate-spin text-blue-500" />
         <span>Memuat modul keuangan...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+        <p className="font-bold">{error}</p>
+        <button 
+          onClick={() => { setLoading(true); setError(null); }} 
+          className="px-4 py-2 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-blue-700 transition-all min-h-[44px]"
+        >
+          Coba Lagi
+        </button>
       </div>
     );
   }

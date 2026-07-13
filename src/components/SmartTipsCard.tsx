@@ -31,6 +31,7 @@ export default function SmartTipsCard() {
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const CACHE_KEY = `smart_tips_${profile?.tenantId}`;
   const CACHE_TIME = 6 * 60 * 60 * 1000; // 6 hours
@@ -39,6 +40,7 @@ export default function SmartTipsCard() {
     if (!profile?.tenantId) return;
     
     try {
+      setError(null);
       const idToken = await auth.currentUser?.getIdToken();
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       if (idToken) {
@@ -65,9 +67,12 @@ export default function SmartTipsCard() {
           tips: data.tips,
           timestamp: Date.now()
         }));
+      } else {
+        setError("Format respons tidak valid.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch smart tips:", err);
+      setError("Gagal memuat tips pintar otomatis. Silakan periksa koneksi internet Anda.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -112,6 +117,7 @@ export default function SmartTipsCard() {
       fetchAIInsights(incidents, avgTime);
     }).catch(err => {
       console.error("Firestore error:", err);
+      setError("Gagal mengambil data insiden komunitas dari database.");
       setLoading(false);
     });
   }, [profile?.tenantId]);
@@ -119,6 +125,7 @@ export default function SmartTipsCard() {
   const handleRefresh = async () => {
     if (!profile?.tenantId) return;
     setRefreshing(true);
+    setError(null);
     
     // Manual force refresh
     const q = query(
@@ -143,8 +150,9 @@ export default function SmartTipsCard() {
         avgTime = Math.round((total / resolved.length) / 60000);
       }
       await fetchAIInsights(incidents, avgTime);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Manual refresh error:", err);
+      setError("Gagal memuat ulang data. Periksa koneksi internet Anda.");
       setRefreshing(false);
     }
   };
@@ -198,7 +206,16 @@ export default function SmartTipsCard() {
           })}
         </AnimatePresence>
 
-        {tips.length === 0 && !loading && (
+        {error && (
+          <div className="bg-rose-50 text-rose-800 p-3 rounded-lg text-[9px] font-bold text-center border border-rose-100 flex flex-col gap-1.5 items-center">
+            <span>{error}</span>
+            <button onClick={handleRefresh} className="px-3 py-1 bg-rose-600 text-white rounded font-black uppercase tracking-wider hover:bg-rose-700 transition-all text-[8px]">
+              Coba Lagi
+            </button>
+          </div>
+        )}
+
+        {tips.length === 0 && !loading && !error && (
           <div className="text-center py-4">
             <p className="text-[10px] text-gray-400 font-bold uppercase">Belum ada analisis tersedia.</p>
           </div>

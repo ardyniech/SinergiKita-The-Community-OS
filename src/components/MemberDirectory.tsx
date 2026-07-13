@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ import { MemberFilters, FilterType } from './molecules/MemberFilters';
 import { MemberStats } from './molecules/MemberStats';
 import { isAdmin } from '../lib/permissions';
 import { AppUser } from '../types';
-import { X, Save, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Save, CheckCircle, Loader2, Camera, Upload, RotateCcw, AlertCircle } from 'lucide-react';
 
 export default function MemberDirectory() {
   const { profile } = useAuth();
@@ -36,6 +36,98 @@ export default function MemberDirectory() {
     observations: ''
   });
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // Camera capture states
+  const [capturingMember, setCapturingMember] = useState<AppUser | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [photoSaving, setPhotoSaving] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let localStream: MediaStream | null = null;
+    if (capturingMember) {
+      setCameraError(null);
+      setCapturedImage(null);
+      navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 320, facingMode: 'user' },
+        audio: false
+      }).then((s) => {
+        localStream = s;
+        setStream(s);
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+        }
+      }).catch((err) => {
+        console.error("Error accessing camera:", err);
+        setCameraError("Tidak dapat mengakses kamera. Harap izinkan akses kamera di browser Anda.");
+      });
+    }
+    return () => {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [capturingMember]);
+
+  const handleCapture = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 240;
+    canvas.height = 240;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      // Mirror style capture for natural look
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      setCapturedImage(dataUrl);
+    }
+  };
+
+  const handleSavePhoto = async () => {
+    if (!capturingMember?.id || !capturedImage) return;
+    setPhotoSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', capturingMember.id), {
+        photoURL: capturedImage
+      });
+      showToast("Foto profil berhasil diperbarui!");
+      setCapturingMember(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast("Gagal menyimpan foto: " + err.message);
+    } finally {
+      setPhotoSaving(false);
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 240;
+        canvas.height = 240;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, 240, 240);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setCapturedImage(dataUrl);
+        }
+      };
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (!profile?.tenantId) return;
@@ -173,8 +265,10 @@ export default function MemberDirectory() {
                 key={member.id} 
                 member={member} 
                 isAdmin={isAdmin(profile)} 
+                currentUserId={profile?.uid}
                 onEdit={handleEditClick} 
                 onMessage={handleMessage} 
+                onCapturePhoto={(m) => setCapturingMember(m)}
               />
             ))
           )}
@@ -323,6 +417,138 @@ export default function MemberDirectory() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {capturingMember && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-sm w-full overflow-hidden"
+            >
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div className="flex items-center gap-2">
+                  <Camera size={16} className="text-blue-600" />
+                  <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Ambil Foto Profil</h3>
+                </div>
+                <button 
+                  onClick={() => setCapturingMember(null)} 
+                  className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                <div className="relative aspect-square w-full max-w-[240px] mx-auto rounded-full overflow-hidden bg-gray-950 border-4 border-gray-100 shadow-inner flex items-center justify-center">
+                  {/* Camera view */}
+                  {!capturedImage && !cameraError && (
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      muted 
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                  )}
+
+                  {/* Circular framing target for profile photo alignment */}
+                  {!capturedImage && !cameraError && (
+                    <div className="absolute inset-0 border-[16px] border-black/40 rounded-full pointer-events-none flex items-center justify-center">
+                      <div className="w-full h-full border border-white/50 rounded-full border-dashed" />
+                    </div>
+                  )}
+
+                  {/* Captured image preview */}
+                  {capturedImage && (
+                    <img 
+                      src={capturedImage} 
+                      alt="Captured Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+
+                  {/* Camera access error state */}
+                  {cameraError && !capturedImage && (
+                    <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-center text-gray-400 bg-gray-900">
+                      <AlertCircle size={24} className="text-amber-500 mb-2" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-white mb-1">Akses Kamera Terkendala</p>
+                      <p className="text-[9px] font-medium text-gray-400 mb-3 leading-normal">{cameraError}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Subtext info */}
+                <div className="text-center">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    {capturingMember.displayName || capturingMember.email.split('@')[0]}
+                  </p>
+                  <p className="text-[9px] font-medium text-gray-400 mt-0.5">
+                    {capturedImage ? "Pratinjau foto Anda. Klik simpan jika sudah sesuai." : "Posisikan wajah Anda di tengah lingkaran."}
+                  </p>
+                </div>
+
+                {/* Actions container */}
+                <div className="flex flex-col gap-2 pt-2">
+                  {/* Capture / Retake buttons */}
+                  {!capturedImage && !cameraError && (
+                    <button
+                      type="button"
+                      onClick={handleCapture}
+                      className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-blue-100"
+                    >
+                      <Camera size={14} />
+                      Jepret Foto
+                    </button>
+                  )}
+
+                  {capturedImage && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCapturedImage(null)}
+                        className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+                      >
+                        <RotateCcw size={14} />
+                        Ulangi
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSavePhoto}
+                        disabled={photoSaving}
+                        className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-green-100 disabled:opacity-50"
+                      >
+                        {photoSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        Simpan
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Fallback File Upload (especially when permission denied or no camera device) */}
+                  <div className="border-t border-gray-100 pt-3">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full py-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 border border-gray-200 border-dashed"
+                    >
+                      <Upload size={12} />
+                      Unggah dari Galeri Device
+                    </button>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
