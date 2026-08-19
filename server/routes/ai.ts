@@ -7,6 +7,8 @@ import { getUserProfile } from "../utils/user";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
   httpOptions: {
@@ -54,7 +56,7 @@ aiRouter.post("/insights", express.json(), async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "User is not associated with any community tenant" });
     }
 
-    const allowedRoles = ['superadmin', 'admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'];
+    const allowedRoles = ['superadmin', 'admin', 'ketua', 'bendahara', 'sekretaris'];
     if (!allowedRoles.includes(userData?.role || '')) {
       return res.status(403).json({ error: "Forbidden: Only community administrators can trigger insights" });
     }
@@ -123,7 +125,7 @@ aiRouter.post("/insights", express.json(), async (req: AuthRequest, res) => {
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+      model: GEMINI_MODEL,
       contents: prompt,
     });
 
@@ -202,7 +204,7 @@ aiRouter.post("/smart-tips", express.json(), async (req: AuthRequest, res) => {
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+      model: GEMINI_MODEL,
       contents: `Berikan 3-4 tips praktis (Smart Tips) untuk pengurus komunitas dalam bahasa Indonesia mengenai penanganan insiden (insiden: ${incidents}, waktu tanggap: ${avgResponseTime} menit, topik: ${topic || 'umum'}). Format sebagai JSON array of objects dengan struktur: [{title, description, priority}].`,
       config: { responseMimeType: "application/json" }
     });

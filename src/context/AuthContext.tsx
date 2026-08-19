@@ -4,6 +4,7 @@ import { doc, onSnapshot, setDoc, getDoc, serverTimestamp, collection, query, wh
 import { auth, db } from '../lib/firebase';
 import { AppUser, Tenant } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
+import { SUPERADMIN_EMAILS } from '../lib/permissions';
 
 interface AuthContextType {
   user: User | null;
@@ -15,15 +16,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const MASTER_EMAILS = ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'];
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isSuperAdmin = profile?.role === 'superadmin' || (user?.email && MASTER_EMAILS.includes(user.email)) || false;
+  const isSuperAdmin = profile?.role === 'superadmin' || (user?.email && SUPERADMIN_EMAILS.includes(user.email)) || false;
 
   // Auth state listener
   useEffect(() => {
@@ -47,54 +46,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const data = docSnap.data() as AppUser;
         setProfile(data);
 
-        // Fix: If this is a master email but role isn't superadmin, force update it
-        const isMaster = user.email && MASTER_EMAILS.includes(user.email);
+        // Fix: If this is a superadmin email but role isn't superadmin, force update it
+        const isMaster = user.email && SUPERADMIN_EMAILS.includes(user.email);
         if (isMaster && data.role !== 'superadmin') {
           await setDoc(doc(db, 'users', user.uid), { ...data, role: 'superadmin' }, { merge: true });
-        }
-
-        // Fix: If the user profile exists but has no tenant linked, check if there is an invitation/registration under their email
-        if (!data.tenantId && user.email) {
-          try {
-            const q = query(
-              collection(db, 'users'),
-              where('email', '==', user.email.toLowerCase())
-            );
-            const inviteSnap = await getDocs(q);
-            const inviteDocs = inviteSnap.docs.filter(doc => doc.id !== user.uid);
-            const inviteDoc = inviteDocs.find(doc => doc.data().tenantId);
-            
-            if (inviteDoc) {
-              const inviteData = inviteDoc.data();
-              const updatedProfile: AppUser = {
-                ...data,
-                role: inviteData.role || 'member',
-                tenantId: inviteData.tenantId,
-                tenantName: inviteData.tenantName || null,
-                isApproved: true, // Auto-approve since registered by admin
-                status: 'active',
-                displayName: inviteData.displayName || data.displayName || user.displayName || user.email?.split('@')[0] || '',
-                phoneNumber: inviteData.phoneNumber || data.phoneNumber || '',
-                address: inviteData.address || data.address || '',
-              };
-              
-              await setDoc(doc(db, 'users', user.uid), updatedProfile);
-              
-              // Clean up all other duplicate documents for this email
-              for (const docToDel of inviteDocs) {
-                await deleteDoc(doc(db, 'users', docToDel.id));
-              }
-            }
-          } catch (err) {
-            console.error("Gagal melakukan auto-merge data registrasi warga:", err);
-          }
         }
         
         setLoading(false);
       } else {
         // Document doesn't exist yet, try to create it
         try {
-          const isMaster = user.email && MASTER_EMAILS.includes(user.email);
+          const isMaster = user.email && SUPERADMIN_EMAILS.includes(user.email);
           let inviteData: any = null;
           let inviteDocsToDelete: string[] = [];
 

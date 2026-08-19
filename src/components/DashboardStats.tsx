@@ -142,11 +142,11 @@ export default function DashboardStats({ onNavigate }: DashboardStatsProps) {
       <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
         {enabledModules.includes('finance') && (
           <>
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-3">
               <div>
-                <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Saldo Kas Komunitas</h2>
-                <p className="text-xl font-black text-gray-900 tracking-tight mt-1">
-                  Rp {balance.toLocaleString()}
+                <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Saldo Kas Gotong Royong</h2>
+                <p className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight mt-0.5 tabular-nums">
+                  Rp {balance.toLocaleString('id-ID')}
                 </p>
               </div>
             </div>
@@ -157,12 +157,12 @@ export default function DashboardStats({ onNavigate }: DashboardStatsProps) {
         </div>
       </div>
 
-      <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-6 h-6 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-6 h-6 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center">
             <TrendingUp size={12} />
           </div>
-          <h2 className="text-[10px] font-bold text-gray-800 uppercase tracking-wider">Tren Analitik Komunitas</h2>
+          <h2 className="text-[10px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Tren Perkembangan Warga</h2>
         </div>
         <div className="h-44 w-full">
           <ResponsiveContainer width="100%" height="100%">

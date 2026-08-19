@@ -11,7 +11,9 @@ import { StatusScreen } from './components/organisms/StatusScreen';
 import { DashboardView } from './components/organisms/DashboardView';
 import { isSuperAdmin as checkSuperAdmin } from './lib/permissions';
 import EmergencySystem from './components/EmergencySystem';
-import FinanceModule from './components/PostgresFinanceModule';
+import { FinanceLedger } from './components/finance/FinanceLedger';
+import { KoperasiModule } from './components/koperasi/KoperasiModule';
+import { FundingModule } from './components/funding/FundingModule';
 import SocialModule from './components/SocialModule';
 import MemberDirectory from './components/MemberDirectory';
 import POSModule from './components/POSModule';
@@ -66,11 +68,11 @@ function MainApp() {
   const views: Record<View, { title: string; component: React.ReactNode }> = {
     dashboard: { title: 'Dashboard', component: null },
     emergency: { title: 'Alarm SOS', component: <EmergencySystem /> },
-    finance: { title: 'Finance Community', component: <FinanceModule /> },
+    finance: { title: 'Buku Kas Komunitas', component: <FinanceLedger /> },
     social: { title: 'Kepedulian', component: <SocialModule /> },
     directory: { title: 'Warga', component: <MemberDirectory /> },
-    koperasi: { title: 'Finance Community', component: <FinanceModule /> },
-    funding: { title: 'Finance Community', component: <FinanceModule /> },
+    koperasi: { title: 'Koperasi Simpan Pinjam', component: <KoperasiModule /> },
+    funding: { title: 'Funding Proyek Warga', component: <FundingModule /> },
     marketplace: { title: 'Pasar Brotherhood', component: <MarketplaceModule /> },
     learning: { title: 'Panduan', component: <LearningModule /> },
     announcements: { title: 'Warta Warga', component: <AnnouncementsModule /> },

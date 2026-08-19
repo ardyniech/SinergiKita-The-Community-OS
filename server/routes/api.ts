@@ -7,6 +7,8 @@ import { getUserProfile } from "../utils/user";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
   httpOptions: {
@@ -25,7 +27,7 @@ apiRouter.get("/health", (req, res) => {
 apiRouter.get("/recommendations", async (req: AuthRequest, res) => {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+      model: GEMINI_MODEL,
       contents: "You are an expert community administrator for 'SinergiKita', a platform for grassroots community synergy. Based on general community needs (transparency, finance, social welfare), provide 3 short, actionable recommendations for a community leader. Format as JSON: array of {id, title, description}.",
       config: {
         responseMimeType: "application/json",
@@ -49,5 +51,3 @@ apiRouter.get("/recommendations", async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Gagal mengambil rekomendasi" });
   }
 });
-
-// ... I will add other routes here ...

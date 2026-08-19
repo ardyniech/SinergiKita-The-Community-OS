@@ -4,33 +4,30 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useAudit } from '../context/AuditContext';
-import { AlertCircle, AlertTriangle, Construction, MapPin, Loader2, Mic, MicOff, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Construction, MapPin, Loader2, Mic, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { checkAndGrantAchievements } from '../lib/achievements';
 
 const INCIDENTS = [
   { 
     id: 'traffic', 
-    label: 'Macet Parah', 
+    label: 'Macet Padat', 
     icon: Construction, 
-    color: 'bg-orange-50 text-orange-600 border-orange-100',
-    hover: 'hover:bg-orange-100',
+    color: 'bg-amber-50 text-amber-700 border-amber-200/60',
     severity: 'medium'
   },
   { 
     id: 'accident', 
-    label: 'Lakalantas', 
+    label: 'Laka / Darurat', 
     icon: AlertCircle, 
-    color: 'bg-rose-50 text-rose-600 border-rose-100',
-    hover: 'hover:bg-rose-100',
+    color: 'bg-rose-50 text-rose-700 border-rose-200/60',
     severity: 'high'
   },
   { 
     id: 'roadblock', 
-    label: 'Razia/Blokade', 
+    label: 'Penutupan Jalan', 
     icon: AlertTriangle, 
-    color: 'bg-amber-50 text-amber-600 border-amber-100',
-    hover: 'hover:bg-amber-100',
+    color: 'bg-blue-50 text-blue-700 border-blue-200/60',
     severity: 'medium'
   }
 ];
@@ -53,12 +50,9 @@ export default function QuickIncidentReport() {
       recognitionRef.current.lang = 'id-ID';
 
       recognitionRef.current.onresult = (event: any) => {
-        let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             setTranscript(prev => prev + event.results[i][0].transcript + ' ');
-          } else {
-            interimTranscript += event.results[i][0].transcript;
           }
         }
       };
@@ -68,10 +62,9 @@ export default function QuickIncidentReport() {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
         setIsListening(false);
         if (event.error === 'not-allowed') {
-          showToast('Izin mikrofon ditolak');
+          showToast('Izin mikrofon belum aktif');
         }
       };
     }
@@ -82,13 +75,13 @@ export default function QuickIncidentReport() {
       recognitionRef.current?.stop();
     } else {
       if (!recognitionRef.current) {
-        showToast('Speech-to-text tidak didukung di browser ini');
+        showToast('Fitur suara belum didukung di browser ini');
         return;
       }
       setTranscript('');
       recognitionRef.current.start();
       setIsListening(true);
-      showToast('Mendengarkan... Silakan bicara');
+      showToast('Mendengarkan... Silakan ceritakan situasinya');
     }
   };
 
@@ -101,7 +94,6 @@ export default function QuickIncidentReport() {
     }
 
     try {
-      // Try to get location
       let location = null;
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -112,29 +104,29 @@ export default function QuickIncidentReport() {
           lng: position.coords.longitude
         };
       } catch (err) {
-        console.warn("Geolocation failed or denied", err);
+        console.warn("Geolocation skipped", err);
       }
 
       const description = transcript.trim() 
-        ? `${transcript.trim()}. (Dilaporkan via suara)`
-        : `Dilaporkan oleh ${profile.displayName || 'rekan ojol'} di sekitar lokasi saat ini.`;
+        ? `${transcript.trim()}. (Laporan lisan via suara)`
+        : `Kabar dari ${profile.displayName || 'Sahabat Warga'} di sekitar lokasi saat ini.`;
 
       await addDoc(collection(db, 'social_alerts'), {
         tenantId: profile.tenantId,
         uid: profile.uid,
         userName: profile.displayName || profile.email.split('@')[0],
-        title: `Laporan: ${incident.label}`,
+        title: `Kabar Warga: ${incident.label}`,
         description,
         severity: incident.severity,
         helpers: 0,
         createdAt: serverTimestamp(),
         type: 'incident',
         incidentType: incident.id,
-        location: location
+        location
       });
 
-      addAuditEntry(`Reported incident: ${incident.label}${transcript ? ' (with voice notes)' : ''}`);
-      showToast(`Laporan "${incident.label}" berhasil disiarkan!`);
+      addAuditEntry(`Melaporkan situasi: ${incident.label}`);
+      showToast(`Terima kasih! Informasi "${incident.label}" berhasil dibagikan ke warga.`);
       
       if (profile) {
         checkAndGrantAchievements(profile, profile.tenantId!);
@@ -142,36 +134,35 @@ export default function QuickIncidentReport() {
       
       setTranscript('');
     } catch (error) {
-      console.error(error);
-      showToast('Gagal mengirim laporan');
+      showToast('Mohon maaf, pengiriman laporan sedang terkendala');
     } finally {
       setLoadingId(null);
     }
   };
 
   return (
-    <div className="tech-card p-3 rounded-lg border border-slate-200 mb-3 relative overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between mb-3 border-b border-dashed border-slate-200 pb-2.5">
+    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-2.5 shadow-xs">
+      <div className="flex items-center justify-between mb-2.5 border-b border-slate-100 dark:border-slate-800 pb-2">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-cyan-50 border border-cyan-200 rounded-lg flex items-center justify-center text-cyan-600 shadow-xs">
-            <MapPin size={12} />
+          <div className="w-7 h-7 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400">
+            <MapPin size={14} />
           </div>
           <div>
-            <h2 className="text-[10px] font-mono font-extrabold text-slate-800 uppercase tracking-widest">INCIDENT_BROADCAST</h2>
-            <p className="text-[7px] font-mono text-slate-400 uppercase tracking-wider leading-none mt-0.5">Saling Jaga di Aspal / Road Patrol</p>
+            <h2 className="text-xs font-black text-slate-800 dark:text-slate-100">Kabar Kilat Lingkungan</h2>
+            <p className="text-[9px] text-slate-400">Saling peduli dan pantau situasi sekitar</p>
           </div>
         </div>
 
         <button
           onClick={toggleListening}
-          className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
+          className={`min-h-[44px] min-w-[44px] rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
             isListening 
-              ? 'bg-rose-500 text-white border-rose-600 animate-pulse shadow-lg shadow-rose-200' 
-              : 'bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 border-slate-200'
+              ? 'bg-rose-500 text-white border-rose-600 animate-pulse' 
+              : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-slate-600 border-slate-200 dark:border-slate-700'
           }`}
-          title={isListening ? 'Berhenti mendengarkan' : 'Lapor via suara'}
+          title={isListening ? 'Selesai merekam' : 'Lapor via pesan suara'}
         >
-          <Mic size={13} />
+          <Mic size={16} />
         </button>
       </div>
 
@@ -181,15 +172,15 @@ export default function QuickIncidentReport() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-3 bg-cyan-50/40 rounded-lg p-2.5 border border-cyan-100 relative group"
+            className="mb-2.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-lg p-2.5 border border-blue-200 dark:border-blue-800 relative group"
           >
             <button 
               onClick={() => setTranscript('')}
-              className="absolute top-1 right-1 p-1 text-cyan-500 hover:text-cyan-700 cursor-pointer"
+              className="absolute top-1 right-1 p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
             >
-              <X size={12} />
+              <X size={14} />
             </button>
-            <p className="text-[9px] font-mono text-cyan-800 italic pr-4">"{transcript}"</p>
+            <p className="text-[10px] text-blue-900 dark:text-blue-300 italic pr-4">"{transcript}"</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -202,23 +193,15 @@ export default function QuickIncidentReport() {
           return (
             <motion.button
               key={incident.id}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => handleReport(incident)}
               disabled={!!loadingId}
-              className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all cursor-pointer ${
-                incident.id === 'traffic' ? 'bg-orange-50/50 border-orange-200/50 text-orange-700 hover:bg-orange-100/60' :
-                incident.id === 'accident' ? 'bg-rose-50/50 border-rose-200/50 text-rose-700 hover:bg-rose-100/60' :
-                'bg-amber-50/50 border-amber-200/50 text-amber-700 hover:bg-amber-100/60'
-              } disabled:opacity-50`}
+              className={`min-h-[44px] flex flex-col items-center justify-center gap-1 p-2 rounded-lg border transition-all cursor-pointer ${incident.color} disabled:opacity-50`}
             >
-              <div className="p-1 rounded bg-white border border-slate-200/40 shrink-0">
-                {isLoading ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Icon size={14} />
-                )}
+              <div className="p-1 rounded bg-white/80 dark:bg-slate-800 shrink-0">
+                {isLoading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />}
               </div>
-              <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide text-center leading-none">
+              <span className="text-[9px] font-bold tracking-tight text-center leading-tight">
                 {incident.label}
               </span>
             </motion.button>

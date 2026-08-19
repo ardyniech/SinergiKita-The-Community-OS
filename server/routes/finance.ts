@@ -4,6 +4,7 @@ import { db as pgDb } from '../../src/db/index';
 import { finances, users } from '../../src/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getUserProfile } from '../utils/user';
+import { isSuperAdminEmail } from '../utils/superadmin';
 
 export const financeRouter = express.Router();
 
@@ -12,7 +13,7 @@ financeRouter.get("/", requireAuth, async (req: AuthRequest, res) => {
     const idToken = req.headers.authorization?.split('Bearer ')[1];
     const profile = await getUserProfile(req.user.uid, req.user.email, idToken);
     
-    const isSuper = profile?.role === 'superadmin' || ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'].includes(req.user.email || '');
+    const isSuper = profile?.role === 'superadmin' || isSuperAdminEmail(req.user.email);
     const tenantId = profile?.tenantId;
 
     let targetTenantId = tenantId;
@@ -64,21 +65,26 @@ financeRouter.post("/", requireAuth, express.json(), async (req: AuthRequest, re
     }
     
     const role = userRecord[0].role || profile?.role;
-    const isSuper = role === 'superadmin' || ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'].includes(req.user.email || '');
-    const tenantId = profile?.tenantId || req.body.tenantId;
+    const isSuper = role === 'superadmin' || isSuperAdminEmail(req.user.email);
+
+    // Tenant ID security enforcement: Non-super users strictly use profile.tenantId
+    let targetTenantId = profile?.tenantId;
+    if (isSuper) {
+      targetTenantId = req.body.tenantId || profile?.tenantId || 'global';
+    }
 
     if (!isSuper && role !== 'admin' && role !== 'bendahara' && role !== 'ketua') {
       return res.status(403).json({ error: "Only admin/bendahara/ketua can add records" });
     }
 
-    if (!tenantId && !isSuper) {
+    if (!targetTenantId) {
       return res.status(400).json({ error: "Tenant ID required for financial records" });
     }
     
     const { type, amount, description, category } = req.body;
     
     const newRecord = await pgDb.insert(finances).values({
-      tenantId: tenantId || 'global',
+      tenantId: targetTenantId,
       userId: userRecord[0].id,
       type,
       amount: amount.toString(),

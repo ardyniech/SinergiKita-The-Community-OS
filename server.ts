@@ -15,7 +15,7 @@ import { financeRouter } from "./server/routes/finance";
 import { aiRouter } from "./server/routes/ai";
 import { db as pgDb } from "./src/db/index.ts";
 import { finances, users } from "./src/db/schema.ts";
-import { desc, eq, sum } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 
 // Initialize Firebase Admin SDK
@@ -342,7 +342,7 @@ async function startServer() {
   
 
   // Protect all /api/ai/* and /api/community/* routes, and /api/recommendations
-  app.use("/api/recommendations", verifyFirebaseToken);
+  app.use("/api/recommendations", verifyFirebaseToken, apiLimiter);
   app.use("/api/ai/*", verifyFirebaseToken, apiLimiter);
   app.use("/api/community/*", verifyFirebaseToken, apiLimiter);
   app.use("/api", apiRouter);

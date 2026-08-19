@@ -1,6 +1,7 @@
 import { db } from "../init";
 import { parseFirestoreFields, restGetDocument } from "../firestore-helpers";
 import firebaseConfig from "../../firebase-applet-config.json";
+import { isSuperAdminEmail } from "./superadmin";
 
 export async function getUserProfile(uid: string, email?: string, idToken?: string) {
   // 1. Try standard Firestore Admin SDK
@@ -37,11 +38,10 @@ export async function getUserProfile(uid: string, email?: string, idToken?: stri
   }
 
   // 3. Last fallback: If Firestore is unreachable, we trust the verified email from the ID token for SuperAdmin access
-  const superAdmins = ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'];
-  if (email && superAdmins.includes(email.toLowerCase())) {
+  if (isSuperAdminEmail(email)) {
     return {
       role: 'superadmin',
-      displayName: email.split('@')[0],
+      displayName: email?.split('@')[0] || 'Admin',
       tenantId: null, // Global access
       isApproved: true
     };

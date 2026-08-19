@@ -59,9 +59,32 @@ export interface CommunityData {
 
 export interface FundingProject {
   id: string;
+  tenantId?: string;
+  uid?: string;
+  ownerName?: string;
   title: string;
-  currentSlots: number;
-  totalSlots: number;
+  description?: string;
+  category?: string;
+  target?: number;
+  current?: number;
+  backers?: number;
+  currentSlots?: number;
+  totalSlots?: number;
+  status: 'active' | 'funded' | 'closed';
+  createdAt?: any;
+  deadline?: any;
+}
+
+export interface KoperasiRecord {
+  id: string;
+  tenantId: string;
+  uid: string;
+  userName: string;
+  type: 'deposit' | 'loan' | 'repayment';
+  amount: number;
+  note?: string;
+  status: 'pending' | 'completed' | 'rejected';
+  timestamp: any;
 }
 
 export interface MarketplaceItem {
@@ -148,3 +171,31 @@ export interface RecurringTransaction {
   nextBillingDate: string;
   status: 'active' | 'paused';
 }
+
+export interface KoperasiLoan {
+  id: string;
+  tenantId: string;
+  uid: string;
+  borrowerName: string;
+  amount: number;
+  tenorMonths: number;
+  purpose: string;
+  guarantorName?: string;
+  monthlyInstallment: number;
+  status: 'pending' | 'approved' | 'rejected' | 'active' | 'completed';
+  approvedBy?: string;
+  createdAt: any;
+  paidAmount?: number;
+}
+
+export interface FundingContribution {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  projectTitle: string;
+  uid: string;
+  contributorName: string;
+  amount: number;
+  timestamp: any;
+}
+
