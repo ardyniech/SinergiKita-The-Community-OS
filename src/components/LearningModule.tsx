@@ -60,7 +60,7 @@ export default function LearningModule() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100">
+      <div className="p-4 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100">
         <Loader2 size={24} className="animate-spin text-blue-500" />
         <span>Memuat modul pembelajaran...</span>
       </div>
@@ -69,11 +69,11 @@ export default function LearningModule() {
 
   if (error) {
     return (
-      <div className="p-8 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+      <div className="p-4 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
         <p className="font-bold">{error}</p>
         <button 
           onClick={() => { setLoading(true); setError(null); }} 
-          className="px-4 py-2 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-blue-700 transition-all min-h-[44px]"
+          className="px-2 py-2 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-blue-700 transition-all min-h-[44px]"
         >
           Coba Lagi
         </button>
@@ -82,7 +82,7 @@ export default function LearningModule() {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
       <div className="flex justify-between items-start">
         <SectionHeader title="Modul Pembelajaran" subtitle="Panduan Warga" icon={BookMarked} />
         {isAdmin(profile) && (
@@ -97,7 +97,7 @@ export default function LearningModule() {
 
       <div className="space-y-3">
         {materials.length === 0 ? (
-          <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <div className="p-4 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
             <p className="text-[10px] text-gray-400 font-bold">Belum ada materi.</p>
           </div>
         ) : (
@@ -109,7 +109,7 @@ export default function LearningModule() {
 
       {showAdd && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-3 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-black text-gray-900 text-sm">Tambah Materi</h3>
               <button onClick={() => setShowAdd(false)} className="p-1.5 hover:bg-gray-100 rounded-full"><X size={18}/></button>

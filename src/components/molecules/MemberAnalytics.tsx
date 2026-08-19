@@ -48,7 +48,7 @@ export const MemberAnalytics: React.FC<MemberAnalyticsProps> = ({ members }) => 
     <div className="space-y-6 mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Skill Distribution */}
-        <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
+        <div className="bg-white p-4 rounded-[32px] border border-gray-100 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
               <LayoutGrid size={18} />
@@ -87,7 +87,7 @@ export const MemberAnalytics: React.FC<MemberAnalyticsProps> = ({ members }) => 
         </div>
 
         {/* Top Contributors */}
-        <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
+        <div className="bg-white p-4 rounded-[32px] border border-gray-100 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
               <Award size={18} />
@@ -121,7 +121,7 @@ export const MemberAnalytics: React.FC<MemberAnalyticsProps> = ({ members }) => 
       </div>
 
       {/* Summary Stat */}
-      <div className="bg-blue-600 rounded-[32px] p-5 text-white flex items-center justify-between shadow-lg shadow-blue-100">
+      <div className="bg-blue-600 rounded-[32px] p-3 text-white flex items-center justify-between shadow-lg shadow-blue-100">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
             <TrendingUp size={24} />

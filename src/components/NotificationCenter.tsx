@@ -70,12 +70,20 @@ export default function NotificationCenter() {
         limit(5)
       );
       const unsubIncident = onSnapshot(incidentQ, (snapshot) => {
-        const items = snapshot.docs.map(doc => ({
-          id: `incident-${doc.id}`,
-          title: doc.data().title || 'Laporan Baru',
-          description: doc.data().description || 'Ada laporan pantauan jalan baru.',
-          type: 'update' as const
-        }));
+        const items = snapshot.docs
+          .filter(doc => {
+            const data = doc.data();
+            if (!data.createdAt) return true;
+            const date = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+            const diffHours = (new Date().getTime() - date.getTime()) / (1000 * 60 * 60);
+            return diffHours <= 24;
+          })
+          .map(doc => ({
+            id: `incident-${doc.id}`,
+            title: doc.data().title || 'Laporan Baru',
+            description: doc.data().description || 'Ada laporan pantauan jalan baru.',
+            type: 'update' as const
+          }));
         setNotifications(prev => [...prev.filter(n => !n.id.startsWith('incident-')), ...items]);
       }, (error) => {
         console.error("NotificationCenter incident error:", error);
@@ -113,6 +121,13 @@ export default function NotificationCenter() {
       const unsub = onSnapshot(q, (snapshot) => {
         const items = snapshot.docs
           .filter(doc => doc.data().status !== 'resolved')
+          .filter(doc => {
+            const data = doc.data();
+            if (!data.timestamp) return true;
+            const date = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+            const diffHours = (new Date().getTime() - date.getTime()) / (1000 * 60 * 60);
+            return diffHours <= 24;
+          })
           .map(doc => {
             const data = doc.data();
             const statusLabel = data.status === 'triggered' ? 'SIAGA' :
@@ -128,6 +143,26 @@ export default function NotificationCenter() {
         setNotifications(prev => [...prev.filter(n => !n.id.startsWith('emergency-')), ...items]);
       }, (error) => {
         console.error("NotificationCenter emergency subscription error:", error);
+      });
+      unsubscribers.push(unsub);
+    }
+
+    // 5. Funding Opportunities
+    if (profile.tenantId && profile.isApproved) {
+      const q = query(
+        collection(db, 'projects'),
+        where('tenantId', '==', profile.tenantId)
+      );
+      const unsub = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: `funding-${doc.id}`,
+          title: 'Kesempatan Pendanaan Baru',
+          description: `Proyek baru "${doc.data().title}" terbuka untuk pendanaan.`,
+          type: 'update' as const
+        }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('funding-')), ...items]);
+      }, (error) => {
+        console.warn("NotificationCenter funding projects error:", error);
       });
       unsubscribers.push(unsub);
     }
@@ -165,7 +200,7 @@ export default function NotificationCenter() {
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <div className="p-8 text-center">
+                  <div className="p-4 text-center">
                     <p className="text-xs text-gray-400 italic">Tidak ada notifikasi baru.</p>
                   </div>
                 ) : (

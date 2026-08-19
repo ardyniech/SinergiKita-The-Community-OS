@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { Megaphone, Plus, X, Loader2 } from 'lucide-react';
@@ -18,7 +18,13 @@ export default function AnnouncementsModule() {
   useEffect(() => {
     if (!profile?.tenantId) return;
     setError(null);
-    const q = query(collection(db, 'announcements'), where('tenantId', '==', profile.tenantId));
+    const yesterday = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const q = query(
+      collection(db, 'announcements'), 
+      where('tenantId', '==', profile.tenantId),
+      where('createdAt', '>=', yesterday),
+      orderBy('createdAt', 'desc')
+    );
     return onSnapshot(q, 
       (snap) => {
         setAnnouncements(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -51,7 +57,7 @@ export default function AnnouncementsModule() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100">
+      <div className="p-4 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100">
         <Loader2 size={24} className="animate-spin text-orange-500" />
         <span>Memuat informasi terbaru...</span>
       </div>
@@ -60,11 +66,11 @@ export default function AnnouncementsModule() {
 
   if (error) {
     return (
-      <div className="p-8 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+      <div className="p-4 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
         <p className="font-bold">{error}</p>
         <button 
           onClick={() => { setLoading(true); setError(null); }} 
-          className="px-4 py-2 bg-orange-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-orange-700 transition-all min-h-[44px]"
+          className="px-2 py-2 bg-orange-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-orange-700 transition-all min-h-[44px]"
         >
           Coba Lagi
         </button>
@@ -73,7 +79,7 @@ export default function AnnouncementsModule() {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+    <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
       <div className="flex justify-between items-start">
         <SectionHeader title="Info Terbaru" subtitle="Warta Warga" icon={Megaphone} colorClass="text-orange-600" bgClass="bg-orange-50" />
         {isAdmin(profile) && (
@@ -88,7 +94,7 @@ export default function AnnouncementsModule() {
 
       <div className="space-y-3">
         {announcements.length === 0 ? (
-          <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+          <div className="p-4 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
             <p className="text-[10px] text-gray-400 font-bold">Belum ada pengumuman.</p>
           </div>
         ) : (
@@ -100,7 +106,7 @@ export default function AnnouncementsModule() {
 
       {showAdd && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-3 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-black text-gray-900 text-sm">Tambah Pengumuman</h3>
               <button onClick={() => setShowAdd(false)} className="p-1.5 hover:bg-gray-100 rounded-full"><X size={18}/></button>

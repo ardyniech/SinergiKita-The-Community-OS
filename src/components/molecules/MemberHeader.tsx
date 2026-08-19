@@ -1,4 +1,4 @@
-import { Users, UserPlus, ChartBar } from 'lucide-react';
+import { Users, UserPlus, ChartBar, ShieldCheck } from 'lucide-react';
 import { MemberBulkActions } from './MemberBulkActions';
 import { AppUser, AppProfile } from '../../types';
 
@@ -9,6 +9,8 @@ interface MemberHeaderProps {
   setShowRegister: (val: boolean) => void;
   showAnalytics: boolean;
   setShowAnalytics: (val: boolean) => void;
+  showPermissions?: boolean;
+  setShowPermissions?: (val: boolean) => void;
 }
 
 export function MemberHeader({ 
@@ -17,7 +19,9 @@ export function MemberHeader({
   showRegister, 
   setShowRegister, 
   showAnalytics, 
-  setShowAnalytics 
+  setShowAnalytics,
+  showPermissions = false,
+  setShowPermissions
 }: MemberHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -32,19 +36,32 @@ export function MemberHeader({
         <div className="flex flex-wrap items-center gap-2">
           <MemberBulkActions members={members} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button 
             onClick={() => setShowRegister(!showRegister)}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
               showRegister ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-blue-600 border border-blue-100 hover:bg-blue-50'
             }`}
           >
             <UserPlus size={14} />
             {showRegister ? 'Batal' : 'Daftar Baru'}
           </button>
+          
+          {setShowPermissions && (
+            <button 
+              onClick={() => setShowPermissions(!showPermissions)}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                showPermissions ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-amber-600 border border-amber-100 hover:bg-amber-50'
+              }`}
+            >
+              <ShieldCheck size={14} />
+              {showPermissions ? 'Batal Peran' : 'Kelola Peran'}
+            </button>
+          )}
+
           <button 
             onClick={() => setShowAnalytics(!showAnalytics)}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
               showAnalytics ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
             }`}
           >

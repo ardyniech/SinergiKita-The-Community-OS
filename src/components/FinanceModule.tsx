@@ -80,7 +80,7 @@ export default function FinanceModule() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100 shadow-sm">
+      <div className="p-4 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100 shadow-sm">
         <Loader2 size={24} className="animate-spin text-blue-500" />
         <span>Memuat modul keuangan...</span>
       </div>
@@ -89,11 +89,11 @@ export default function FinanceModule() {
 
   if (error) {
     return (
-      <div className="p-8 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+      <div className="p-4 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
         <p className="font-bold">{error}</p>
         <button 
           onClick={() => { setLoading(true); setError(null); }} 
-          className="px-4 py-2 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-blue-700 transition-all min-h-[44px]"
+          className="px-2 py-2 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl hover:bg-blue-700 transition-all min-h-[44px]"
         >
           Coba Lagi
         </button>
@@ -108,7 +108,7 @@ export default function FinanceModule() {
       <TransactionLedger />
 
       {/* 2. Operational Budget & Recurring Expenses Widget */}
-      <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+      <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
         {isThresholdBreached && <div className="mb-3 p-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 animate-pulse"><AlertTriangle className="text-red-600" size={16} /><p className="text-[10px] font-bold text-red-700 uppercase">KRITIS: Melampaui limit {budget.threshold}%!</p></div>}
         
         <div className="mb-4">
@@ -129,7 +129,7 @@ export default function FinanceModule() {
           {isAddingRecurring && (
             <div className="bg-gray-50 p-3 rounded-xl mb-3 space-y-2 border border-gray-100">
               <input type="text" placeholder="Deskripsi" className="w-full text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.description} onChange={e => setNewRecurring(p => ({ ...p, description: e.target.value }))} />
-              <div className="flex gap-2"><input type="number" inputMode="numeric" placeholder="Rp" className="flex-1 text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.amount} onChange={e => setNewRecurring(p => ({ ...p, amount: e.target.value }))} /><button onClick={addRecurring} disabled={submitting} className="bg-blue-600 text-white px-4 rounded-lg font-black text-[9px] uppercase tracking-widest">{submitting ? <Loader2 size={12} className="animate-spin" /> : 'Simpan'}</button></div>
+              <div className="flex gap-2"><input type="number" inputMode="numeric" placeholder="Rp" className="flex-1 text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.amount} onChange={e => setNewRecurring(p => ({ ...p, amount: e.target.value }))} /><button onClick={addRecurring} disabled={submitting} className="bg-blue-600 text-white px-2 rounded-lg font-black text-[9px] uppercase tracking-widest">{submitting ? <Loader2 size={12} className="animate-spin" /> : 'Simpan'}</button></div>
             </div>
           )}
           <div className="space-y-2">

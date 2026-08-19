@@ -21,7 +21,7 @@ export function SOSConfirmationModal({ isSending, onCancel, onSend }: SOSConfirm
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 100 }}
-        className="relative w-full max-w-sm bg-white rounded-2xl p-5 shadow-2xl"
+        className="relative w-full max-w-sm bg-white rounded-2xl p-3 shadow-2xl"
       >
         <div className="text-center mb-5">
           <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">

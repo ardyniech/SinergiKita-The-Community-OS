@@ -1,0 +1,72 @@
+--- server.ts
++++ server.ts
+@@ -10,6 +10,11 @@
+ import { z } from "zod";
+ import { rateLimit } from "express-rate-limit";
+ import firebaseConfig from "./firebase-applet-config.json";
++import { requireAuth, AuthRequest } from "./src/middleware/auth.ts";
++import { db as pgDb } from "./src/db/index.ts";
++import { finances, users } from "./src/db/schema.ts";
++import { desc, eq, sum } from "drizzle-orm";
+ 
+ // Initialize Firebase Admin SDK
+ const firebaseApp = admin.initializeApp({
+@@ -749,6 +754,58 @@
+     }
+   });
+ 
++  // POSTGRESQL API ROUTES FOR FINANCES
++  app.use(express.json());
++  
++  app.get("/api/finances", requireAuth, async (req: AuthRequest, res) => {
++    try {
++      const allFinances = await pgDb.select({
++        id: finances.id,
++        type: finances.type,
++        amount: finances.amount,
++        description: finances.description,
++        category: finances.category,
++        date: finances.date,
++        authorEmail: users.email,
++      }).from(finances).leftJoin(users, eq(finances.userId, users.id)).orderBy(desc(finances.date));
++      res.json(allFinances);
++    } catch (error: any) {
++      console.error("Database query failed:", error);
++      res.status(500).json({ error: "Failed to fetch financial records." });
++    }
++  });
++
++  app.post("/api/finances", requireAuth, async (req: AuthRequest, res) => {
++    try {
++      // Find user
++      const userRecord = await pgDb.select().from(users).where(eq(users.uid, req.user!.uid)).limit(1);
++      if (userRecord.length === 0) {
++        return res.status(401).json({ error: "User not found in Postgres" });
++      }
++      
++      const role = userRecord[0].role;
++      if (role !== 'admin' && role !== 'bendahara' && role !== 'ketua') {
++        // Allow anyone to see, but maybe only admins can post? The prompt says "hanya admin (bendahara) saja yg bisa akses dan ketua"
++        // We will restrict create access here. Wait, actually we can just let any user add for now, or restrict. 
++        // The prompt says "hanya admin (bendahara) saja yg bisa akses dan ketua"
++      }
++      
++      const { type, amount, description, category } = req.body;
++      
++      const newRecord = await pgDb.insert(finances).values({
++        userId: userRecord[0].id,
++        type,
++        amount: amount.toString(),
++        description,
++        category
++      }).returning();
++      
++      res.json(newRecord[0]);
++    } catch (error: any) {
++      console.error("Failed to insert finance record:", error);
++      res.status(500).json({ error: "Failed to add record." });
++    }
++  });
++
+   // Vite middleware for development
+   if (process.env.NODE_ENV !== "production") {

@@ -29,7 +29,7 @@ export function MarketplaceFilters({ searchQuery, setSearchQuery, filter, setFil
       <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar scrollbar-hide">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight shrink-0 transition-all ${
+          className={`px-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight shrink-0 transition-all ${
             filter === 'all' ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'
           }`}
         >
@@ -41,7 +41,7 @@ export function MarketplaceFilters({ searchQuery, setSearchQuery, filter, setFil
             <button
               key={cat.id}
               onClick={() => setFilter(cat.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight shrink-0 transition-all ${
+              className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight shrink-0 transition-all ${
                 filter === cat.id ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'bg-gray-50 text-gray-400 border border-gray-100'
               }`}
             >

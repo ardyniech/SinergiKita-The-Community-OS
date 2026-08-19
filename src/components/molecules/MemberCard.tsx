@@ -11,6 +11,7 @@ interface MemberCardProps {
   onEdit: (member: AppUser) => void;
   onMessage: (name: string, phoneNumber?: string) => void;
   onCapturePhoto: (member: AppUser) => void;
+  onDelete?: (member: AppUser) => void;
 }
 
 export const MemberCard: React.FC<MemberCardProps> = ({ 
@@ -19,7 +20,8 @@ export const MemberCard: React.FC<MemberCardProps> = ({
   currentUserId,
   onEdit, 
   onMessage,
-  onCapturePhoto
+  onCapturePhoto,
+  onDelete
 }) => {
   const getStatusConfig = () => {
     // If explicit status exists, use it. Otherwise derive from isApproved
@@ -137,14 +139,31 @@ export const MemberCard: React.FC<MemberCardProps> = ({
           </div>
         </div>
 
-        <div className="flex sm:flex-col gap-2 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+        <div className="flex sm:flex-col gap-2 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
           {isAdmin && (
-            <button onClick={() => onEdit(member)} className="flex-1 sm:flex-none p-2 bg-white text-blue-600 rounded-xl shadow-sm border border-gray-100 hover:bg-blue-50 flex items-center justify-center gap-2">
-              <Edit3 size={14} /> <span className="sm:hidden text-[10px] font-bold">Edit</span>
-            </button>
+            <>
+              <button 
+                onClick={() => onEdit(member)} 
+                className="flex-1 sm:flex-none p-3 bg-white text-blue-700 rounded-xl shadow-sm border border-blue-100 hover:bg-blue-50 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+              >
+                <Edit3 size={16} /> <span className="sm:hidden text-xs font-bold uppercase tracking-wider">Kelola</span>
+              </button>
+              {onDelete && (member.uid !== currentUserId && member.id !== currentUserId) && (
+                <button 
+                  onClick={() => onDelete(member)} 
+                  className="flex-1 sm:flex-none p-3 bg-red-600 text-white rounded-xl shadow-md border border-red-700 hover:bg-red-700 flex items-center justify-center gap-2 active:scale-95 transition-transform" 
+                  title="Hapus Warga"
+                >
+                  <UserX size={16} /> <span className="sm:hidden text-xs font-bold uppercase tracking-wider">Hapus</span>
+                </button>
+              )}
+            </>
           )}
-          <button onClick={() => onMessage(member.displayName || member.email, member.phoneNumber)} className="flex-1 sm:flex-none p-2 bg-white text-green-600 rounded-xl shadow-sm border border-gray-100 hover:bg-green-50 flex items-center justify-center gap-2">
-            <MessageCircle size={14} /> <span className="sm:hidden text-[10px] font-bold">Pesan</span>
+          <button 
+            onClick={() => onMessage(member.displayName || member.email, member.phoneNumber)} 
+            className="flex-1 sm:flex-none p-3 bg-green-600 text-white rounded-xl shadow-md border border-green-700 hover:bg-green-700 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            <MessageCircle size={16} /> <span className="sm:hidden text-xs font-bold uppercase tracking-wider">Chat</span>
           </button>
         </div>
       </div>

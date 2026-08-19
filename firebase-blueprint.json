@@ -30,6 +30,7 @@
         "rating": { "type": "number" },
         "skills": { "type": "array", "items": { "type": "string" } },
         "points": { "type": "number" },
+        "achievements": { "type": "array", "items": { "type": "string" } },
         "isCritical": { "type": "boolean" },
         "observations": { "type": "string" },
         "evaluationNote": { "type": "string" }
@@ -75,7 +76,10 @@
         "senderAddress": { "type": "string" },
         "senderId": { "type": "string" },
         "tenantId": { "type": "string" },
-        "timestamp": { "type": "object", "description": "Server timestamp or number." }
+        "timestamp": { "type": "object", "description": "Server timestamp or number." },
+        "latitude": { "type": "number", "description": "GPS latitude of the SOS sender." },
+        "longitude": { "type": "number", "description": "GPS longitude of the SOS sender." },
+        "locationAccuracy": { "type": "number", "description": "Accuracy of the GPS coordinates in meters." }
       },
       "required": ["type", "senderName", "senderAddress", "senderId", "tenantId"]
     },
@@ -212,6 +216,23 @@
         "timestamp": { "type": "object" }
       },
       "required": ["tenantId", "action", "user", "timestamp"]
+    },
+    "ActiveLocation": {
+      "title": "ActiveLocation",
+      "description": "Real-time active GPS location of a member.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "updatedAt": { "type": "object" },
+        "isOnline": { "type": "boolean" }
+      },
+      "required": ["uid", "tenantId", "latitude", "longitude"]
     }
   },
   "firestore": {
@@ -270,6 +291,10 @@
     "audit_logs": {
       "schema": "AuditEntry",
       "description": "System activity logs."
+    },
+    "active_locations": {
+      "schema": "ActiveLocation",
+      "description": "Real-time active member GPS locations."
     }
   }
 }

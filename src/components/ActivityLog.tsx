@@ -18,14 +18,14 @@ export default function ActivityLog() {
   };
 
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div className="flex items-center gap-2 mb-6">
-        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-          <Clock size={18} />
+    <div className="tech-card bg-white rounded-lg p-3 shadow-sm border border-slate-200">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-6 h-6 bg-cyan-50 rounded-lg flex items-center justify-center text-cyan-600 border border-cyan-200 shadow-xs">
+          <Clock size={12} />
         </div>
         <div>
-          <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase">Timeline Aktivitas</h2>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">Catatan Administrasi Terbaru</p>
+          <h2 className="text-[10px] font-mono font-extrabold text-slate-800 uppercase tracking-widest">TIMELINE_AKTIVITAS</h2>
+          <p className="text-[7px] font-mono text-slate-400 uppercase tracking-wider leading-none mt-0.5">Catatan Administrasi Terbaru</p>
         </div>
       </div>
 

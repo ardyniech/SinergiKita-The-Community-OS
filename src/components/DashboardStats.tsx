@@ -25,27 +25,31 @@ export default function DashboardStats({ onNavigate }: DashboardStatsProps) {
         snap.forEach(doc => { total += (doc.data() as Transaction).type === 'credit' ? (doc.data() as Transaction).amount : -(doc.data() as Transaction).amount; });
         setBalance(total);
         setLoading(false);
+      }, (e) => {
+        console.warn("DashboardStats transactions error:", e);
+        setLoading(false);
       }),
-      onSnapshot(q('users'), s => setCounts(prev => ({ ...prev, members: s.size }))),
-      onSnapshot(q('emergencies'), s => setCounts(prev => ({ ...prev, emergencies: s.size }))),
-      onSnapshot(q('koperasi'), s => setCounts(prev => ({ ...prev, koperasi: s.size }))),
-      onSnapshot(q('projects'), s => setCounts(prev => ({ ...prev, projects: s.size }))),
-      onSnapshot(q('announcements'), s => setCounts(prev => ({ ...prev, announcements: s.size }))),
-      onSnapshot(q('learning'), s => setCounts(prev => ({ ...prev, learning: s.size })))
+      onSnapshot(q('users'), s => setCounts(prev => ({ ...prev, members: s.size })), (e) => console.warn("DashboardStats users error:", e)),
+      onSnapshot(q('emergencies'), s => {
+        const activeDocs = s.docs.filter(doc => {
+          const data = doc.data();
+          if (data.status === 'resolved') return false;
+          if (!data.timestamp) return true;
+          const date = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+          const diffHours = (new Date().getTime() - date.getTime()) / (1000 * 60 * 60);
+          return diffHours <= 24;
+        });
+        setCounts(prev => ({ ...prev, emergencies: activeDocs.length }));
+      }, (e) => console.warn("DashboardStats emergencies error:", e)),
+      onSnapshot(q('koperasi'), s => setCounts(prev => ({ ...prev, koperasi: s.size })), (e) => console.warn("DashboardStats koperasi error:", e)),
+      onSnapshot(q('projects'), s => setCounts(prev => ({ ...prev, projects: s.size })), (e) => console.warn("DashboardStats projects error:", e)),
+      onSnapshot(q('announcements'), s => setCounts(prev => ({ ...prev, announcements: s.size })), (e) => console.warn("DashboardStats announcements error:", e)),
+      onSnapshot(q('learning'), s => setCounts(prev => ({ ...prev, learning: s.size })), (e) => console.warn("DashboardStats learning error:", e))
     ];
     return () => unsubscribes.forEach(unsub => unsub());
   }, [profile?.tenantId, profile?.isApproved]);
 
-  const getStatusClasses = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'bg-green-100 text-green-800';
-      case 'warning': return 'bg-yellow-100 text-yellow-800';
-      case 'critical': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
-  const cashFlowStatus = balance > 1000000 ? 'healthy' : balance > 0 ? 'warning' : 'critical';
   const enabledModules = tenant?.enabledModules || ['emergency', 'finance', 'social', 'directory', 'marketplace', 'announcements', 'chat', 'ai'];
 
   const kpis = [
@@ -57,24 +61,21 @@ export default function DashboardStats({ onNavigate }: DashboardStatsProps) {
     { id: 'learning', label: 'Materi', value: counts.learning, icon: BookMarked, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ].filter(kpi => enabledModules.includes(kpi.id as any));
 
-  if (loading) return <div className="p-8 bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 animate-pulse h-64" />;
+  if (loading) return <div className="p-4 bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 animate-pulse h-64" />;
 
   return (
-    <div className="space-y-4 mb-5">
-      <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+    <div className="mb-3">
+      <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
         {enabledModules.includes('finance') && (
           <>
-            <div className="flex justify-between items-start mb-5">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Status Keuangan Komunitas</h2>
-                <p className="text-3xl font-black text-gray-900 tracking-tighter">Rp {balance.toLocaleString()}</p>
-              </div>
-              <div className="flex flex-col gap-0.5 items-end">
-                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${getStatusClasses(cashFlowStatus)}`}>Status: {cashFlowStatus}</span>
-                <div className="flex gap-1 mt-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /><span className="text-[8px] font-bold text-gray-400 uppercase">Sinkron</span></div>
+                <h2 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Saldo Kas Komunitas</h2>
+                <p className="text-xl font-black text-gray-900 tracking-tight mt-1">
+                  Rp {balance.toLocaleString()}
+                </p>
               </div>
             </div>
-            <div className="h-1 bg-gray-50 rounded-full overflow-hidden mb-5"><div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${Math.min((balance/2000000)*100, 100)}%` }} /></div>
           </>
         )}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

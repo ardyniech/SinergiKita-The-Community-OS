@@ -371,7 +371,7 @@ export default function TransactionLedger() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="p-4 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-xl shadow-sm border border-gray-100">
         <Loader2 size={24} className="animate-spin text-indigo-500" />
         <span>Memuat data mutasi keuangan...</span>
       </div>

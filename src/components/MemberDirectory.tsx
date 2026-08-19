@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -10,9 +10,10 @@ import { RegisterMemberForm } from './molecules/RegisterMemberForm';
 import { MemberHeader } from './molecules/MemberHeader';
 import { MemberFilters, FilterType } from './molecules/MemberFilters';
 import { MemberStats } from './molecules/MemberStats';
+import { PermissionManager } from './organisms/PermissionManager';
 import { isAdmin } from '../lib/permissions';
 import { AppUser } from '../types';
-import { X, Save, CheckCircle, Loader2, Camera, Upload, RotateCcw, AlertCircle } from 'lucide-react';
+import { X, Save, CheckCircle, Loader2, Camera, Upload, RotateCcw, AlertCircle, Trash2, UserX } from 'lucide-react';
 
 export default function MemberDirectory() {
   const { profile } = useAuth();
@@ -23,8 +24,10 @@ export default function MemberDirectory() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
   
   const [editingMember, setEditingMember] = useState<AppUser | null>(null);
+  const [deletingMember, setDeletingMember] = useState<AppUser | null>(null);
   const [editForm, setEditForm] = useState({
     displayName: '',
     phoneNumber: '',
@@ -194,6 +197,22 @@ export default function MemberDirectory() {
     }
   };
 
+  const handleDeleteMember = async () => {
+    if (!deletingMember?.id) return;
+    
+    setSaveLoading(true);
+    try {
+      await deleteDoc(doc(db, 'users', deletingMember.id));
+      showToast(`🗑️ Warga "${deletingMember.displayName || deletingMember.email}" berhasil dihapus.`);
+      setDeletingMember(null);
+      setEditingMember(null);
+    } catch (err: any) {
+      showToast("Gagal menghapus warga: " + err.message);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
   const handleMessage = (name: string, phone?: string) => {
     if (phone) {
       showToast(`📲 Membuka WhatsApp untuk menghubungi ${name} (${phone})...`);
@@ -219,9 +238,15 @@ export default function MemberDirectory() {
     total: members.length
   };
 
+  const handleRoleUpdate = async (memberId: string, newRole: string) => {
+    await updateDoc(doc(db, 'users', memberId), {
+      role: newRole
+    });
+  };
+
   if (loading) {
     return (
-      <div className="p-8 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest flex flex-col items-center justify-center gap-2">
+      <div className="p-4 text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest flex flex-col items-center justify-center gap-2">
         <Loader2 size={24} className="animate-spin text-blue-500" />
         <span>Memuat database warga...</span>
       </div>
@@ -236,6 +261,7 @@ export default function MemberDirectory() {
             members={members} profile={profile} 
             showRegister={showRegister} setShowRegister={setShowRegister}
             showAnalytics={showAnalytics} setShowAnalytics={setShowAnalytics}
+            showPermissions={showPermissions} setShowPermissions={setShowPermissions}
           />
           <AnimatePresence>
             {showRegister && <RegisterMemberForm onClose={() => setShowRegister(false)} />}
@@ -245,35 +271,45 @@ export default function MemberDirectory() {
 
       {showAnalytics && isAdmin(profile) && <MemberAnalytics members={members} />}
 
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        {isAdmin(profile) && <MemberStats stats={stats} />}
-        
-        <MemberFilters 
-          searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-          filter={filter} setFilter={setFilter}
-          isAdmin={isAdmin(profile)}
+      {showPermissions && isAdmin(profile) ? (
+        <PermissionManager 
+          members={members}
+          currentUserId={profile?.uid}
+          onRoleUpdate={handleRoleUpdate}
+          showToast={showToast}
         />
+      ) : (
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          {isAdmin(profile) && <MemberStats stats={stats} />}
+          
+          <MemberFilters 
+            searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+            filter={filter} setFilter={setFilter}
+            isAdmin={isAdmin(profile)}
+          />
 
-        <div className="space-y-3">
-          {filtered.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Warga tidak ditemukan</p>
-            </div>
-          ) : (
-            filtered.map(member => (
-              <MemberCard 
-                key={member.id} 
-                member={member} 
-                isAdmin={isAdmin(profile)} 
-                currentUserId={profile?.uid}
-                onEdit={handleEditClick} 
-                onMessage={handleMessage} 
-                onCapturePhoto={(m) => setCapturingMember(m)}
-              />
-            ))
-          )}
+          <div className="space-y-3">
+            {filtered.length === 0 ? (
+              <div className="p-12 text-center">
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Warga tidak ditemukan</p>
+              </div>
+            ) : (
+              filtered.map(member => (
+                <MemberCard 
+                  key={member.id} 
+                  member={member} 
+                  isAdmin={isAdmin(profile)} 
+                  currentUserId={profile?.uid}
+                  onEdit={handleEditClick} 
+                  onMessage={handleMessage} 
+                  onCapturePhoto={(m) => setCapturingMember(m)}
+                  onDelete={(m) => setDeletingMember(m)}
+                />
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <AnimatePresence>
         {editingMember && (
@@ -310,15 +346,26 @@ export default function MemberDirectory() {
                 )}
 
                 <div className="space-y-3.5">
-                  <div>
-                    <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nama Lengkap</label>
-                    <input 
-                      type="text" 
-                      required
-                      className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
-                      value={editForm.displayName}
-                      onChange={e => setEditForm({...editForm, displayName: e.target.value})}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nama Lengkap</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                        value={editForm.displayName}
+                        onChange={e => setEditForm({...editForm, displayName: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Alamat Email (Tetap)</label>
+                      <input 
+                        type="text" 
+                        disabled
+                        className="w-full p-2.5 bg-gray-100 border border-gray-100 rounded-xl text-xs text-gray-400 font-medium cursor-not-allowed"
+                        value={editingMember.email}
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -399,24 +446,76 @@ export default function MemberDirectory() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 flex gap-2">
-                  <button 
-                    type="button" 
-                    onClick={() => setEditingMember(null)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    type="submit" 
-                    disabled={saveLoading}
-                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-100"
-                  >
-                    {saveLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    Simpan Perubahan
-                  </button>
+                <div className="pt-4 border-t border-gray-100 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingMember(null)}
+                      className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+                    >
+                      Batal
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={saveLoading}
+                      className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-100"
+                    >
+                      {saveLoading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                      Simpan Perubahan
+                    </button>
+                  </div>
+
+                  {isAdmin(profile) && editingMember.id !== profile?.uid && editingMember.uid !== profile?.uid && (
+                    <button 
+                      type="button"
+                      onClick={() => setDeletingMember(editingMember)}
+                      disabled={saveLoading}
+                      className="w-full mt-1.5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <Trash2 size={14} />
+                      Hapus Warga dari Komunitas
+                    </button>
+                  )}
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deletingMember && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-2xl p-3 max-w-xs w-full shadow-2xl border border-red-100 text-center"
+            >
+              <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={24} />
+              </div>
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-2">Konfirmasi Hapus</h3>
+              <p className="text-[10px] text-gray-500 font-medium leading-relaxed mb-6">
+                Apakah Anda yakin ingin menghapus <span className="font-black text-gray-900">"{deletingMember.displayName || deletingMember.email}"</span>? 
+                Data ini akan hilang secara permanen.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeletingMember(null)}
+                  className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleDeleteMember}
+                  disabled={saveLoading}
+                  className="flex-1 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center gap-2"
+                >
+                  {saveLoading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                  Ya, Hapus
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

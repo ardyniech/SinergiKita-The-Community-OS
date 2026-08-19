@@ -52,6 +52,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (isMaster && data.role !== 'superadmin') {
           await setDoc(doc(db, 'users', user.uid), { ...data, role: 'superadmin' }, { merge: true });
         }
+
+        // Fix: If the user profile exists but has no tenant linked, check if there is an invitation/registration under their email
+        if (!data.tenantId && user.email) {
+          try {
+            const q = query(
+              collection(db, 'users'),
+              where('email', '==', user.email.toLowerCase())
+            );
+            const inviteSnap = await getDocs(q);
+            const inviteDocs = inviteSnap.docs.filter(doc => doc.id !== user.uid);
+            const inviteDoc = inviteDocs.find(doc => doc.data().tenantId);
+            
+            if (inviteDoc) {
+              const inviteData = inviteDoc.data();
+              const updatedProfile: AppUser = {
+                ...data,
+                role: inviteData.role || 'member',
+                tenantId: inviteData.tenantId,
+                tenantName: inviteData.tenantName || null,
+                isApproved: true, // Auto-approve since registered by admin
+                status: 'active',
+                displayName: inviteData.displayName || data.displayName || user.displayName || user.email?.split('@')[0] || '',
+                phoneNumber: inviteData.phoneNumber || data.phoneNumber || '',
+                address: inviteData.address || data.address || '',
+              };
+              
+              await setDoc(doc(db, 'users', user.uid), updatedProfile);
+              
+              // Clean up all other duplicate documents for this email
+              for (const docToDel of inviteDocs) {
+                await deleteDoc(doc(db, 'users', docToDel.id));
+              }
+            }
+          } catch (err) {
+            console.error("Gagal melakukan auto-merge data registrasi warga:", err);
+          }
+        }
         
         setLoading(false);
       } else {
@@ -59,19 +96,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const isMaster = user.email && MASTER_EMAILS.includes(user.email);
           let inviteData: any = null;
-          let inviteDocId: string | null = null;
+          let inviteDocsToDelete: string[] = [];
 
           if (user.email) {
             const q = query(
               collection(db, 'users'),
-              where('email', '==', user.email.toLowerCase()),
-              where('isInvitation', '==', true)
+              where('email', '==', user.email.toLowerCase())
             );
             const inviteSnap = await getDocs(q);
             if (!inviteSnap.empty) {
-              const inviteDoc = inviteSnap.docs[0];
-              inviteData = inviteDoc.data();
-              inviteDocId = inviteDoc.id;
+              // Find the first invitation doc with a valid tenantId
+              const mainInvite = inviteSnap.docs.find(doc => doc.data().tenantId);
+              if (mainInvite) {
+                inviteData = mainInvite.data();
+              } else {
+                // Otherwise take the first one
+                inviteData = inviteSnap.docs[0].data();
+              }
+              // Mark all of them for deletion
+              inviteDocsToDelete = inviteSnap.docs.map(doc => doc.id);
             }
           }
 
@@ -81,8 +124,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: inviteData?.role || (isMaster ? 'superadmin' : 'member'),
             tenantId: inviteData?.tenantId || null,
             tenantName: inviteData?.tenantName || null,
-            isApproved: isMaster ? true : (inviteData?.isApproved ?? false),
-            status: inviteData?.status || (isMaster ? 'approved' : 'pending'),
+            isApproved: isMaster ? true : (inviteData ? true : false),
+            status: (inviteData || isMaster) ? 'active' : 'pending',
             displayName: inviteData?.displayName || user.displayName || user.email?.split('@')[0] || '',
             phoneNumber: inviteData?.phoneNumber || user.phoneNumber || '',
             address: inviteData?.address || '',
@@ -91,8 +134,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           await setDoc(doc(db, 'users', user.uid), newProfile);
 
-          if (inviteDocId && inviteDocId !== user.uid) {
-            await deleteDoc(doc(db, 'users', inviteDocId));
+          // Clean up all old/duplicate invitation documents
+          for (const docId of inviteDocsToDelete) {
+            if (docId !== user.uid) {
+              await deleteDoc(doc(db, 'users', docId));
+            }
           }
         } catch (err) {
           handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}`);

@@ -50,7 +50,7 @@ export default function ProfileSettings({ isOpen, onClose }: { isOpen: boolean, 
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
           >
-            <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+            <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-600 text-white rounded-xl">
                   <User size={20} />
@@ -62,7 +62,20 @@ export default function ProfileSettings({ isOpen, onClose }: { isOpen: boolean, 
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+            {profile?.achievements && profile.achievements.length > 0 && (
+              <div className="p-4 mx-4 mt-4 bg-indigo-50 rounded-2xl">
+                <h3 className="text-[11px] font-bold text-indigo-400 uppercase mb-2 tracking-wider">Penghargaan</h3>
+                <div className="flex flex-wrap gap-2">
+                  {profile.achievements.map((ach) => (
+                    <span key={ach} className="px-3 py-1 bg-white text-indigo-700 text-[10px] font-black uppercase rounded-full border border-indigo-100 shadow-sm">
+                      {ach}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="p-4 space-y-5">
               <div>
                 <label className="block text-[11px] font-bold text-gray-400 uppercase mb-1.5 tracking-wider">Nama Lengkap</label>
                 <div className="relative">

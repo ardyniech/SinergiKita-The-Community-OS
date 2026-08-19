@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import { useAudit } from '../context/AuditContext';
 import { AlertCircle, AlertTriangle, Construction, MapPin, Loader2, Mic, MicOff, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { checkAndGrantAchievements } from '../lib/achievements';
 
 const INCIDENTS = [
   { 
@@ -134,6 +135,11 @@ export default function QuickIncidentReport() {
 
       addAuditEntry(`Reported incident: ${incident.label}${transcript ? ' (with voice notes)' : ''}`);
       showToast(`Laporan "${incident.label}" berhasil disiarkan!`);
+      
+      if (profile) {
+        checkAndGrantAchievements(profile, profile.tenantId!);
+      }
+      
       setTranscript('');
     } catch (error) {
       console.error(error);
@@ -144,28 +150,28 @@ export default function QuickIncidentReport() {
   };
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
-      <div className="flex items-center justify-between mb-3">
+    <div className="tech-card p-3 rounded-lg border border-slate-200 mb-3 relative overflow-hidden shadow-sm">
+      <div className="flex items-center justify-between mb-3 border-b border-dashed border-slate-200 pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-            <MapPin size={14} />
+          <div className="w-6 h-6 bg-cyan-50 border border-cyan-200 rounded-lg flex items-center justify-center text-cyan-600 shadow-xs">
+            <MapPin size={12} />
           </div>
           <div>
-            <h2 className="text-[10px] font-black text-gray-900 uppercase tracking-tight">Info Pantauan Jalan</h2>
-            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest leading-none mt-0.5">Saling Jaga di Aspal</p>
+            <h2 className="text-[10px] font-mono font-extrabold text-slate-800 uppercase tracking-widest">INCIDENT_BROADCAST</h2>
+            <p className="text-[7px] font-mono text-slate-400 uppercase tracking-wider leading-none mt-0.5">Saling Jaga di Aspal / Road Patrol</p>
           </div>
         </div>
 
         <button
           onClick={toggleListening}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+          className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all cursor-pointer ${
             isListening 
-              ? 'bg-rose-500 text-white animate-pulse shadow-lg shadow-rose-200' 
-              : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+              ? 'bg-rose-500 text-white border-rose-600 animate-pulse shadow-lg shadow-rose-200' 
+              : 'bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 border-slate-200'
           }`}
           title={isListening ? 'Berhenti mendengarkan' : 'Lapor via suara'}
         >
-          {isListening ? <Mic size={16} /> : <Mic size={16} />}
+          <Mic size={13} />
         </button>
       </div>
 
@@ -175,15 +181,15 @@ export default function QuickIncidentReport() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-3 bg-blue-50/50 rounded-xl p-2.5 border border-blue-100 relative group"
+            className="mb-3 bg-cyan-50/40 rounded-lg p-2.5 border border-cyan-100 relative group"
           >
             <button 
               onClick={() => setTranscript('')}
-              className="absolute top-1 right-1 p-1 text-blue-400 hover:text-blue-600"
+              className="absolute top-1 right-1 p-1 text-cyan-500 hover:text-cyan-700 cursor-pointer"
             >
               <X size={12} />
             </button>
-            <p className="text-[10px] text-blue-700 italic pr-4">"{transcript}"</p>
+            <p className="text-[9px] font-mono text-cyan-800 italic pr-4">"{transcript}"</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -199,14 +205,20 @@ export default function QuickIncidentReport() {
               whileTap={{ scale: 0.95 }}
               onClick={() => handleReport(incident)}
               disabled={!!loadingId}
-              className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${incident.color} ${incident.hover} disabled:opacity-50`}
+              className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all cursor-pointer ${
+                incident.id === 'traffic' ? 'bg-orange-50/50 border-orange-200/50 text-orange-700 hover:bg-orange-100/60' :
+                incident.id === 'accident' ? 'bg-rose-50/50 border-rose-200/50 text-rose-700 hover:bg-rose-100/60' :
+                'bg-amber-50/50 border-amber-200/50 text-amber-700 hover:bg-amber-100/60'
+              } disabled:opacity-50`}
             >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Icon size={18} />
-              )}
-              <span className="text-[9px] font-black uppercase tracking-tight text-center">
+              <div className="p-1 rounded bg-white border border-slate-200/40 shrink-0">
+                {isLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Icon size={14} />
+                )}
+              </div>
+              <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide text-center leading-none">
                 {incident.label}
               </span>
             </motion.button>

@@ -4,7 +4,7 @@ import Voting from './Voting';
 import { useToast } from '../context/ToastContext';
 import { useAudit } from '../context/AuditContext';
 import { useAuth } from '../context/AuthContext';
-import { collection, query, where, onSnapshot, updateDoc, doc, increment, addDoc, serverTimestamp, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, updateDoc, doc, increment, addDoc, serverTimestamp, orderBy, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Heart, Plus, Loader2, FileCheck2, Landmark, HelpCircle, Eye, CheckCircle2, History, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -56,13 +56,16 @@ export default function SocialModule() {
     if (!profile?.tenantId || !profile?.isApproved) return;
 
     // 1. Listen for Social Alerts (Info Musibah / Santunan)
+    const yesterday = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
     const qAlerts = query(
       collection(db, 'social_alerts'), 
       where('tenantId', '==', profile.tenantId),
+      where('createdAt', '>=', yesterday),
       orderBy('createdAt', 'desc')
     );
     const unsubAlerts = onSnapshot(qAlerts, (snap) => {
-      setAlerts(snap.docs.map(d => ({ id: d.id, ...d.data() } as SocialAlert)));
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as SocialAlert));
+      setAlerts(data);
       setLoading(false);
     });
 
@@ -250,10 +253,10 @@ export default function SocialModule() {
   const targetSantunan = 10000000; // 10 Million Rupiah
   const percentAchievement = Math.min(100, Math.round((totalDistributed / targetSantunan) * 100));
 
-  if (loading) return <div className="p-8 text-center text-[10px] text-gray-400">Memuat modul sosial...</div>;
+  if (loading) return <div className="p-4 text-center text-[10px] text-gray-400">Memuat modul sosial...</div>;
 
   return (
-    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm mb-4">
+    <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm mb-4">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Sinergi Sosial</h2>
@@ -332,7 +335,7 @@ export default function SocialModule() {
                     <button 
                       onClick={handleAddAlert}
                       disabled={submittingAlert}
-                      className="px-4 py-1.5 bg-rose-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
+                      className="px-2 py-1.5 bg-rose-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
                     >
                       {submittingAlert && <Loader2 size={12} className="animate-spin" />} Kirim
                     </button>
@@ -453,7 +456,7 @@ export default function SocialModule() {
                     <button 
                       type="submit"
                       disabled={submittingClaim}
-                      className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
+                      className="px-2 py-1.5 bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1"
                     >
                       {submittingClaim && <Loader2 size={12} className="animate-spin" />} Kirim Permohonan
                     </button>

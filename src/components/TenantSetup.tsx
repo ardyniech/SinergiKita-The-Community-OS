@@ -11,7 +11,12 @@ type SetupMode = 'choice' | 'create' | 'join';
 export default function TenantSetup() {
   const { profile } = useAuth();
   const { showToast } = useToast();
-  const [mode, setMode] = useState<SetupMode>('choice');
+  const [mode, setMode] = useState<SetupMode>(() => {
+    const savedFlow = localStorage.getItem('sinergikita_login_flow');
+    if (savedFlow === 'tenant') return 'create';
+    if (savedFlow === 'warga') return 'join';
+    return 'choice';
+  });
   const [name, setName] = useState('');
   const [tenantType, setTenantType] = useState('rt-rw');
   const [tenantId, setTenantId] = useState('');
@@ -102,7 +107,7 @@ export default function TenantSetup() {
 
   if (submitted) {
     return (
-      <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 text-center max-w-md mx-auto mt-10">
+      <div className="bg-white p-3 rounded-2xl shadow-xl border border-gray-100 text-center max-w-md mx-auto mt-10">
         <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <Send size={32} />
         </div>
@@ -118,15 +123,15 @@ export default function TenantSetup() {
   if (mode === 'choice') {
     return (
       <div className="max-w-md mx-auto mt-10">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-black text-gray-900">Selamat Datang!</h2>
-          <p className="text-sm text-gray-500 mt-2">Bagaimana Anda ingin menggunakan SinergiKita?</p>
+        <div className="text-center mb-5">
+          <h2 className="text-xl font-black text-gray-900">Selamat Datang!</h2>
+          <p className="text-xs text-gray-500 mt-1">Bagaimana Anda ingin menggunakan SinergiKita?</p>
         </div>
         
         <div className="grid gap-4">
           <button 
             onClick={() => setMode('join')}
-            className="group bg-white p-6 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:shadow-lg transition-all text-left"
+            className="group bg-white p-3 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:shadow-lg transition-all text-left"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -141,7 +146,7 @@ export default function TenantSetup() {
 
           <button 
             onClick={() => setMode('create')}
-            className="group bg-white p-6 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:shadow-lg transition-all text-left"
+            className="group bg-white p-3 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:shadow-lg transition-all text-left"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -159,7 +164,7 @@ export default function TenantSetup() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-xl border border-gray-100 mt-10">
+    <div className="max-w-md mx-auto bg-white p-3 rounded-2xl shadow-xl border border-gray-100 mt-10">
       <button 
         onClick={() => setMode('choice')}
         className="flex items-center gap-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600 mb-4 transition-colors"
@@ -215,11 +220,14 @@ export default function TenantSetup() {
             <input 
               type="text" 
               required
-              placeholder="Masukkan kode ID komunitas"
-              className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              placeholder="Contoh: L7X8y9pQ..."
+              className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
               value={tenantId}
               onChange={e => setTenantId(e.target.value)}
             />
+            <p className="text-[10px] text-gray-400 mt-1.5 leading-normal">
+              * Hubungi Pengurus RT/RW atau Komunitas Anda untuk mendapatkan Kode ID resmi (dapat dilihat di menu Pengaturan Pengurus).
+            </p>
           </div>
         )}
 

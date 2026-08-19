@@ -1,4 +1,4 @@
-export type CommunityModule = 'finance' | 'social' | 'emergency' | 'koperasi' | 'funding' | 'pos' | 'directory' | 'learning' | 'announcements' | 'chat' | 'marketplace' | 'ai' | 'insights' | 'stats' | 'tips' | 'reports' | 'map' | 'feed' | 'logs' | 'features' | 'settings' | 'superadmin';
+export type CommunityModule = 'finance' | 'social' | 'emergency' | 'koperasi' | 'funding' | 'pos' | 'directory' | 'learning' | 'announcements' | 'chat' | 'marketplace' | 'ptt' | 'ai' | 'insights' | 'stats' | 'tips' | 'reports' | 'map' | 'feed' | 'logs' | 'features' | 'settings' | 'superadmin';
 
 export interface Tenant {
   id: string;
@@ -33,6 +33,7 @@ export interface AppUser {
   rating?: number;
   skills?: string[];
   points?: number;
+  achievements?: string[];
   isCritical?: boolean;
   observations?: string;
   evaluationNote?: string;

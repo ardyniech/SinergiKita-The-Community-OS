@@ -12,7 +12,7 @@ interface StatusScreenProps {
 }
 
 export const StatusScreen = ({ title, description, tenantId, loadingIcon = true }: StatusScreenProps) => (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
     <div className="bg-white p-10 rounded-[40px] shadow-xl border border-gray-100 text-center max-w-md w-full animate-in zoom-in-95 duration-500">
       {loadingIcon && (
         <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 relative">

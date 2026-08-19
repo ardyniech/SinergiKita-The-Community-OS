@@ -1,269 +1,622 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow, useAdvancedMarkerRef, useMap } from '@vis.gl/react-google-maps';
-import { collection, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { collection, query, where, onSnapshot, limit, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { AlertCircle, AlertTriangle, Construction, Map as MapIcon, Loader2, Layers, MapPin as MapPinIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-
-const API_KEY =
-  process.env.GOOGLE_MAPS_PLATFORM_KEY ||
-  (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY ||
-  '';
-
-const hasValidKey = Boolean(API_KEY) && API_KEY !== 'YOUR_API_KEY';
-
-const INCIDENT_ICONS: Record<string, any> = {
-  traffic: Construction,
-  accident: AlertCircle,
-  roadblock: AlertTriangle,
-};
-
-const SEVERITY_COLORS: Record<string, string> = {
-  high: '#ef4444', // rose-500
-  medium: '#f59e0b', // amber-500
-  low: '#3b82f6', // blue-500
-};
-
-// Heatmap Layer Component
-function HeatmapLayer({ points }: { points: { lat: number; lng: number }[] }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!map || !(window as any).google?.maps?.visualization) return;
-
-    const google = (window as any).google;
-    const heatmapData = points.map(
-      (p) => new google.maps.LatLng(p.lat, p.lng)
-    );
-
-    const layer = new google.maps.visualization.HeatmapLayer({
-      data: heatmapData,
-      map: map,
-      radius: 30,
-      opacity: 0.8,
-      gradient: [
-        'rgba(0, 255, 255, 0)',
-        'rgba(0, 255, 255, 1)',
-        'rgba(0, 191, 255, 1)',
-        'rgba(0, 127, 255, 1)',
-        'rgba(0, 63, 255, 1)',
-        'rgba(0, 0, 255, 1)',
-        'rgba(0, 0, 223, 1)',
-        'rgba(0, 0, 191, 1)',
-        'rgba(0, 0, 159, 1)',
-        'rgba(0, 0, 127, 1)',
-        'rgba(63, 0, 91, 1)',
-        'rgba(127, 0, 63, 1)',
-        'rgba(191, 0, 31, 1)',
-        'rgba(255, 0, 0, 1)',
-      ],
-    });
-
-    return () => {
-      layer.setMap(null);
-    };
-  }, [map, points]);
-
-  return null;
-}
-
-function MarkerWithInfo({ alert }: { alert: any }) {
-  const [markerRef, marker] = useAdvancedMarkerRef();
-  const [isOpen, setIsOpen] = useState(false);
-  const Icon = INCIDENT_ICONS[alert.incidentType] || AlertCircle;
-
-  return (
-    <>
-      <AdvancedMarker
-        ref={markerRef}
-        position={alert.location}
-        onClick={() => setIsOpen(true)}
-      >
-        <Pin 
-          background={SEVERITY_COLORS[alert.severity] || '#3b82f6'} 
-          glyphColor="#fff"
-          borderColor="#fff"
-        />
-      </AdvancedMarker>
-      {isOpen && (
-        <InfoWindow anchor={marker} onCloseClick={() => setIsOpen(false)}>
-          <div className="p-1 max-w-[200px]">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Icon size={14} className="text-gray-900" />
-              <h4 className="text-[10px] font-black uppercase tracking-tight">{alert.title}</h4>
-            </div>
-            <p className="text-[9px] text-gray-500 leading-tight mb-1">{alert.description}</p>
-            <div className="flex items-center justify-between border-t border-gray-50 pt-1 mt-1">
-              <span className="text-[8px] font-bold text-gray-400 uppercase">Oleh: {alert.userName}</span>
-              <span className="text-[8px] font-bold text-gray-400 uppercase">
-                {alert.createdAt?.toDate ? new Date(alert.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Baru saja'}
-              </span>
-            </div>
-          </div>
-        </InfoWindow>
-      )}
-    </>
-  );
-}
+import { useToast } from '../context/ToastContext';
+import { MapPin, Loader2, Navigation, Users, AlertTriangle } from 'lucide-react';
 
 export default function IncidentMap() {
   const { profile } = useAuth();
+  const { showToast } = useToast();
+  
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [emergencies, setEmergencies] = useState<any[]>([]);
+  const [activeMembers, setActiveMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'markers' | 'heatmap'>('markers');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [center, setCenter] = useState({ lat: -6.2088, lng: 106.8456 }); // Default Jakarta
+  const [leafletLoaded, setLeafletLoaded] = useState(!!(window as any).L);
+  const [mapReady, setMapReady] = useState(false);
+  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
+  // Filters
+  const [showIncidents, setShowIncidents] = useState(true);
+  const [showMembers, setShowMembers] = useState(true);
+
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const layerGroupRef = useRef<any>(null);
+  const markersRef = useRef<{ [key: string]: any }>({});
+  const isMountedRef = useRef(true);
+  const isSyncingRef = useRef(false);
+
+  // Track mount status
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // 1. Wait for Leaflet to be loaded
+  useEffect(() => {
+    if ((window as any).L) {
+      setLeafletLoaded(true);
+      return;
+    }
+    const interval = setInterval(() => {
+      if ((window as any).L) {
+        setLeafletLoaded(true);
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 1b. Safety Patch for Leaflet DomUtil to prevent _leaflet_pos errors
+  useEffect(() => {
+    if (leafletLoaded) {
+      const L = (window as any).L;
+      if (L && L.DomUtil && !L.DomUtil._patched) {
+        L.DomUtil._patched = true;
+        
+        const originalSetPosition = L.DomUtil.setPosition;
+        L.DomUtil.setPosition = function (el: any, point: any) {
+          if (!el) return;
+          try {
+            return originalSetPosition.call(L.DomUtil, el, point);
+          } catch (err) {
+            console.warn("Patched Leaflet setPosition intercepted error:", err);
+          }
+        };
+
+        const originalGetPosition = L.DomUtil.getPosition;
+        L.DomUtil.getPosition = function (el: any) {
+          if (!el) return null;
+          try {
+            return originalGetPosition.call(L.DomUtil, el);
+          } catch (err) {
+            console.warn("Patched Leaflet getPosition intercepted error:", err);
+            return null;
+          }
+        };
+      }
+    }
+  }, [leafletLoaded]);
+
+  // 2. Real-Time Fetch Incidents
   useEffect(() => {
     if (!profile?.tenantId) return;
 
-    // Fetch alerts from last 24 hours with location
     const q = query(
       collection(db, 'social_alerts'),
       where('tenantId', '==', profile.tenantId),
       where('type', '==', 'incident'),
       orderBy('createdAt', 'desc'),
-      limit(100) // Increase limit for better heatmap visualization
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
         .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
-        .filter((item: any) => item.location && item.location.lat && item.location.lng);
-      
+        .filter((item: any) => item.location && typeof item.location.lat === 'number' && typeof item.location.lng === 'number' && !isNaN(item.location.lat) && !isNaN(item.location.lng))
+        .filter((item: any) => {
+          if (!item.createdAt) return true;
+          const date = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+          const diffHours = (new Date().getTime() - date.getTime()) / (1000 * 60 * 60);
+          return diffHours <= 24;
+        });
       setAlerts(data);
-      
-      // Update center to last alert if available
-      if (data.length > 0) {
-        setCenter(data[0].location);
-      } else {
-        // Try to get user current position for center
-        navigator.geolocation.getCurrentPosition(
-          (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          () => {}
-        );
-      }
+    }, (error) => {
+      console.error("IncidentMap Alerts snapshot error:", error);
+    });
+
+    return unsubscribe;
+  }, [profile?.tenantId]);
+
+  // 3. Real-Time Fetch SOS Emergencies
+  useEffect(() => {
+    if (!profile?.tenantId) return;
+
+    const yesterday = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    const q = query(
+      collection(db, 'emergencies'),
+      where('tenantId', '==', profile.tenantId),
+      where('timestamp', '>=', yesterday)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs
+        .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
+        .filter(item => typeof item.latitude === 'number' && typeof item.longitude === 'number' && !isNaN(item.latitude) && !isNaN(item.longitude))
+        .filter(item => item.status !== 'resolved');
+      setEmergencies(data);
+    }, (error) => {
+      console.error("IncidentMap SOS snapshot error:", error);
+    });
+
+    return unsubscribe;
+  }, [profile?.tenantId]);
+
+  // 4. Real-Time Fetch Active Member/Ojol Locations
+  useEffect(() => {
+    if (!profile?.tenantId) return;
+
+    const q = query(
+      collection(db, 'active_locations'),
+      where('tenantId', '==', profile.tenantId)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs
+        .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
+        .filter((item: any) => {
+          return typeof item.latitude === 'number' && typeof item.longitude === 'number' && !isNaN(item.latitude) && !isNaN(item.longitude);
+        });
+      setActiveMembers(data);
+      setLoading(false);
+    }, (error) => {
+      console.error("IncidentMap Active Members snapshot error:", error);
       setLoading(false);
     });
 
     return unsubscribe;
   }, [profile?.tenantId]);
 
-  const filteredAlerts = useMemo(() => {
-    if (filterType === 'all') return alerts;
-    return alerts.filter(a => a.incidentType === filterType);
-  }, [alerts, filterType]);
+  // 4. Initialize Leaflet Map
+  useEffect(() => {
+    if (!leafletLoaded || !mapRef.current) return;
 
-  const heatmapPoints = useMemo(() => {
-    return filteredAlerts.map(a => a.location);
-  }, [filteredAlerts]);
+    const L = (window as any).L;
+    
+    // Clear existing map instance
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+      setMapReady(false);
+    }
 
-  if (!hasValidKey) {
-    return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-center mb-4">
-        <MapIcon size={32} className="mx-auto text-gray-300 mb-2" />
-        <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Peta Pantauan Jalan</h3>
-        <p className="text-xs text-gray-500 mb-4 max-w-xs mx-auto">Fitur peta memerlukan Google Maps API Key untuk diaktifkan.</p>
-        <div className="text-left bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
-          <p className="text-[10px] font-bold text-gray-700 uppercase">Cara Aktivasi:</p>
-          <ol className="text-[10px] text-gray-500 space-y-1 list-decimal ml-4">
-            <li>Dapatkan API Key di Google Cloud Console.</li>
-            <li>Buka <strong>Settings</strong> (ikon gear) → <strong>Secrets</strong>.</li>
-            <li>Tambah <code>GOOGLE_MAPS_PLATFORM_KEY</code> dan simpan.</li>
-          </ol>
-        </div>
-      </div>
+    // Default center
+    const centerLat = -6.2088;
+    const centerLng = 106.8456;
+
+    const map = L.map(mapRef.current, {
+      center: [centerLat, centerLng],
+      zoom: 13,
+      zoomControl: false,
+      attributionControl: false,
+      fadeAnimation: false,
+      markerZoomAnimation: false,
+      zoomAnimation: false,
+      transform3DLimit: 0
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    L.control.zoom({
+      position: 'bottomright'
+    }).addTo(map);
+
+    const layerGroup = L.layerGroup().addTo(map);
+    layerGroupRef.current = layerGroup;
+
+    mapInstanceRef.current = map;
+    setMapReady(true);
+
+    // Get current device position to center map
+    let watchId: number;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+            map.setView([lat, lng], 14);
+            setUserLocation({ lat, lng });
+          }
+        },
+        () => {}
+      );
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+            setUserLocation({ lat, lng });
+          }
+        },
+        () => {}
+      );
+    }
+
+    return () => {
+      if (watchId && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+      if (mapInstanceRef.current) {
+        try {
+          const map = mapInstanceRef.current;
+          if (layerGroupRef.current) {
+            layerGroupRef.current.clearLayers();
+            layerGroupRef.current.remove();
+          }
+          map.remove(); // Explicitly destroy the map instance
+        } catch (err) {
+          console.warn("Error cleaning up map:", err);
+        }
+        mapInstanceRef.current = null;
+        layerGroupRef.current = null;
+        markersRef.current = {};
+        setMapReady(false);
+      }
+    };
+  }, [leafletLoaded]);
+
+  // 5. Sync Markers to Map
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current || !layerGroupRef.current || !isMountedRef.current) return;
+    if (isSyncingRef.current) return;
+
+    const L = (window as any).L;
+    if (!L) return;
+
+    const map = mapInstanceRef.current;
+    const layerGroup = layerGroupRef.current;
+
+    // Safety check: component might be unmounting or map container might be gone
+    if (!map._container) return;
+
+    isSyncingRef.current = true;
+
+    try {
+      const activeKeys = new Set<string>();
+
+      // Helper to get emoji for incident types
+      const getIncidentEmoji = (type: string) => {
+        if (type === 'traffic') return '🚧';
+        if (type === 'accident') return '🚨';
+        if (type === 'roadblock') return '⚠️';
+        return '📍';
+      };
+
+      // Render Incidents if enabled
+      if (showIncidents) {
+        alerts.forEach(alert => {
+          try {
+            if (!isMountedRef.current || !map._container) return;
+            if (!alert.location || typeof alert.location.lat !== 'number' || typeof alert.location.lng !== 'number' || isNaN(alert.location.lat) || isNaN(alert.location.lng)) return;
+            
+            const key = `alert_${alert.id}`;
+            activeKeys.add(key);
+
+            const emoji = getIncidentEmoji(alert.incidentType);
+            const icon = L.divIcon({
+              html: `
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center justify-center w-7 h-7 rounded-full bg-rose-500 border border-white shadow-lg animate-pulse">
+                    <span class="text-[11px]">${emoji}</span>
+                  </div>
+                  <div class="bg-slate-900 text-[8px] font-black text-white px-1 py-0.5 rounded shadow mt-0.5 whitespace-nowrap uppercase tracking-wider scale-95 origin-top">
+                    ${alert.title}
+                  </div>
+                </div>
+              `,
+              className: 'custom-leaflet-marker',
+              iconSize: [40, 44],
+              iconAnchor: [20, 44]
+            });
+
+            const latlng = [alert.location.lat, alert.location.lng];
+            const popupContent = `
+              <div class="p-1 min-w-[150px] font-sans">
+                <h5 class="font-extrabold text-[10px] uppercase text-rose-600 tracking-tight flex items-center gap-1">
+                  ${emoji} ${alert.title}
+                </h5>
+                <p class="text-[9px] text-slate-600 mt-0.5 leading-normal">${alert.description}</p>
+                <div class="flex items-center justify-between border-t border-slate-100 pt-1 mt-1 text-[7px] text-slate-400 font-mono">
+                  <span>OLEH: ${alert.userName}</span>
+                </div>
+              </div>
+            `;
+
+            let marker = markersRef.current[key];
+            if (marker) {
+              marker.setLatLng(latlng);
+              marker.setIcon(icon);
+              marker.setPopupContent(popupContent);
+            } else {
+              marker = L.marker(latlng, { icon });
+              marker.addTo(layerGroup);
+              marker.bindPopup(popupContent);
+              markersRef.current[key] = marker;
+            }
+          } catch (err) {
+            // Silently fail for individual marker errors
+          }
+        });
+
+        // Render SOS Emergencies
+        emergencies.forEach(sos => {
+          try {
+            if (!isMountedRef.current || !map._container) return;
+            if (typeof sos.latitude !== 'number' || typeof sos.longitude !== 'number' || isNaN(sos.latitude) || isNaN(sos.longitude)) return;
+
+            const key = `sos_${sos.id}`;
+            activeKeys.add(key);
+
+            const icon = L.divIcon({
+              html: `
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center justify-center w-8 h-8 rounded-full bg-red-600 border-2 border-white shadow-[0_0_15px_rgba(220,38,38,0.8)] animate-bounce">
+                    <span class="text-[12px]">🆘</span>
+                  </div>
+                  <div class="bg-red-600 text-[8px] font-black text-white px-1.5 py-0.5 rounded shadow-lg mt-0.5 whitespace-nowrap uppercase tracking-widest scale-100 origin-top">
+                    SOS: ${sos.senderName}
+                  </div>
+                </div>
+              `,
+              className: 'custom-leaflet-marker',
+              iconSize: [44, 48],
+              iconAnchor: [22, 48]
+            });
+
+            const latlng = [sos.latitude, sos.longitude];
+            const popupContent = `
+              <div class="p-1 min-w-[160px] font-sans border-2 border-red-500 rounded-lg">
+                <h5 class="font-black text-[11px] uppercase text-red-600 tracking-tight flex items-center gap-1 mb-1">
+                  🚨 EMERGENCY SOS
+                </h5>
+                <p class="text-[10px] font-bold text-slate-900">${sos.senderName}</p>
+                <p class="text-[9px] text-slate-500 leading-tight">${sos.senderAddress}</p>
+                <div class="mt-2 pt-1 border-t border-red-100">
+                  <p class="text-[8px] font-black text-red-500 uppercase tracking-widest">Status: ${sos.status || 'Triggered'}</p>
+                  <p class="text-[7px] text-slate-400 mt-0.5">${sos.triggeredAt ? new Date(sos.triggeredAt).toLocaleTimeString() : ''}</p>
+                </div>
+              </div>
+            `;
+
+            let marker = markersRef.current[key];
+            if (marker) {
+              marker.setLatLng(latlng);
+              marker.setIcon(icon);
+              marker.setPopupContent(popupContent);
+            } else {
+              marker = L.marker(latlng, { icon, zIndexOffset: 2000 });
+              marker.addTo(layerGroup);
+              marker.bindPopup(popupContent);
+              markersRef.current[key] = marker;
+            }
+          } catch (err) {
+            // Silently fail
+          }
+        });
+      }
+
+      // Render Active Members if enabled
+      if (showMembers) {
+        // Render current user's location
+        if (userLocation && typeof userLocation.lat === 'number' && typeof userLocation.lng === 'number' && !isNaN(userLocation.lat) && !isNaN(userLocation.lng)) {
+          try {
+            if (!isMountedRef.current || !map._container) return;
+            const key = 'user_location';
+            activeKeys.add(key);
+
+            const icon = L.divIcon({
+              html: `
+                <div class="flex flex-col items-center">
+                  <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 border-2 border-white text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]">
+                    <span class="text-[14px]">📍</span>
+                    <span class="absolute top-0 right-0 w-2 h-2 rounded-full bg-green-400 border border-white animate-ping"></span>
+                  </div>
+                  <div class="bg-blue-600 text-[9px] font-black text-white px-2 py-0.5 rounded-md shadow-md mt-1 whitespace-nowrap tracking-wider">
+                    LOKASI SAYA
+                  </div>
+                </div>
+              `,
+              className: 'custom-leaflet-marker',
+              iconSize: [44, 48],
+              iconAnchor: [22, 48]
+            });
+
+            const latlng = [userLocation.lat, userLocation.lng];
+            const popupContent = `
+              <div class="p-1 font-sans text-center">
+                <h5 class="font-black text-[11px] text-blue-600 uppercase">LOKASI SAYA</h5>
+                <p class="text-[9px] text-slate-500 mt-0.5">Posisi GPS Saat Ini</p>
+              </div>
+            `;
+
+            let marker = markersRef.current[key];
+            if (marker) {
+              marker.setLatLng(latlng);
+              marker.setIcon(icon);
+              marker.setPopupContent(popupContent);
+            } else {
+              marker = L.marker(latlng, { icon, zIndexOffset: 1000 });
+              marker.addTo(layerGroup);
+              marker.bindPopup(popupContent);
+              markersRef.current[key] = marker;
+            }
+          } catch (err) {
+            // Silently fail
+          }
+        }
+
+        activeMembers.forEach(member => {
+          try {
+            if (!isMountedRef.current || !map._container) return;
+            if (member.uid === profile?.uid) return; // Don't show self twice
+            if (typeof member.latitude !== 'number' || typeof member.longitude !== 'number' || isNaN(member.latitude) || isNaN(member.longitude)) return;
+            
+            const key = `member_${member.uid}`;
+            activeKeys.add(key);
+
+            const isOjol = member.role === 'Ojol' || (member.displayName || '').toLowerCase().includes('ojol');
+            const badgeEmoji = isOjol ? '🛵' : '👤';
+            const roleText = member.role || 'Warga';
+
+            const icon = L.divIcon({
+              html: `
+                <div class="flex flex-col items-center">
+                  <div class="relative flex items-center justify-center w-7 h-7 rounded-full ${
+                    isOjol 
+                      ? 'bg-emerald-500 border border-white text-white' 
+                      : 'bg-cyan-500 border border-white text-white'
+                  } shadow-lg ring-2 ${isOjol ? 'ring-emerald-200' : 'ring-cyan-200'}">
+                    <span class="text-[11px]">${badgeEmoji}</span>
+                    <span class="absolute top-0 right-0 w-1.5 h-1.5 rounded-full bg-green-400 border border-white animate-ping"></span>
+                  </div>
+                  <div class="bg-slate-950/95 text-[8px] font-black text-white px-1 py-0.5 rounded shadow-md mt-0.5 whitespace-nowrap scale-90 origin-top tracking-tighter">
+                    ${member.displayName}
+                  </div>
+                </div>
+              `,
+              className: 'custom-leaflet-marker',
+              iconSize: [40, 44],
+              iconAnchor: [20, 44]
+            });
+
+            const latlng = [member.latitude, member.longitude];
+            const popupContent = `
+              <div class="p-1 min-w-[140px] font-sans">
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px]">${badgeEmoji}</span>
+                  <h5 class="font-black text-[10px] uppercase text-slate-900 leading-tight">${member.displayName}</h5>
+                </div>
+                <p class="text-[8px] font-mono font-bold text-slate-400 uppercase mt-0.5">${roleText}</p>
+                <div class="flex items-center gap-1 text-[8px] text-slate-500 mt-1 border-t border-slate-100 pt-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                  <span>Terhubung Real-Time</span>
+                </div>
+              </div>
+            `;
+
+            let marker = markersRef.current[key];
+            if (marker) {
+              marker.setLatLng(latlng);
+              marker.setIcon(icon);
+              marker.setPopupContent(popupContent);
+            } else {
+              marker = L.marker(latlng, { icon });
+              marker.addTo(layerGroup);
+              marker.bindPopup(popupContent);
+              markersRef.current[key] = marker;
+            }
+          } catch (err) {
+            // Silently fail
+          }
+        });
+      }
+
+      // Remove stale markers that are no longer active
+      Object.keys(markersRef.current).forEach(key => {
+        if (!activeKeys.has(key)) {
+          const marker = markersRef.current[key];
+          if (marker) {
+            try {
+              layerGroup.removeLayer(marker);
+            } catch (err) {
+              // Ignore
+            }
+          }
+          delete markersRef.current[key];
+        }
+      });
+
+    } catch (e) {
+      console.warn("Leaflet sync error prevented:", e);
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [leafletLoaded, mapReady, alerts, emergencies, activeMembers, showIncidents, showMembers, userLocation, profile]);
+
+
+  // Handle Centering map to current location manually
+  const handleRecenter = () => {
+    if (!mapInstanceRef.current || !navigator.geolocation) return;
+    
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+          mapInstanceRef.current.setView([lat, lng], 15);
+          setUserLocation({ lat, lng });
+          showToast("📍 Peta difokuskan ke GPS Anda");
+        } else {
+          showToast("❌ GPS memberikan koordinat tidak valid");
+        }
+      },
+      () => {
+        showToast("❌ Gagal menjangkau GPS Anda");
+      }
     );
-  }
+  };
 
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 mb-4 h-[350px] relative">
-      {/* Map Header Overlay */}
-      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
-        <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-gray-100 shadow-sm flex items-center gap-1.5">
-          <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-tight text-gray-900">Radar Pantauan Aktif</span>
+    <div className="bg-white rounded-lg overflow-hidden shadow-sm border border-slate-200 mb-3 h-[350px] relative flex flex-col">
+      {/* Map Control Header overlay */}
+      <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
+        <div className="bg-slate-900/90 backdrop-blur-md px-2 py-1 rounded-lg border border-slate-800 shadow-sm flex items-center gap-1.5 pointer-events-auto">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+          <span className="text-[9px] font-black uppercase tracking-wider text-green-400 font-mono">Radar GPS Aktif</span>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm p-1 rounded-lg border border-gray-100 shadow-sm flex gap-1 pointer-events-auto">
+        <div className="flex gap-1.5 pointer-events-auto">
+          {/* Quick Filter Controls */}
           <button
-            onClick={() => setViewMode('markers')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
-              viewMode === 'markers' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
+            onClick={() => setShowMembers(prev => !prev)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold uppercase transition-all shadow-sm border ${
+              showMembers 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                : 'bg-white text-slate-400 border-slate-100 line-through'
             }`}
           >
-            <MapPinIcon size={10} />
-            <span className="text-[9px] font-black uppercase">Pin</span>
+            <Users size={10} />
+            <span>Anggota / Ojol ({activeMembers.length})</span>
           </button>
+
           <button
-            onClick={() => setViewMode('heatmap')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
-              viewMode === 'heatmap' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'
+            onClick={() => setShowIncidents(prev => !prev)}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-bold uppercase transition-all shadow-sm border ${
+              showIncidents 
+                ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                : 'bg-white text-slate-400 border-slate-100 line-through'
             }`}
           >
-            <Layers size={10} />
-            <span className="text-[9px] font-black uppercase">Heatmap</span>
+            <AlertTriangle size={10} />
+            <span>Laporan ({alerts.length})</span>
+          </button>
+
+          <button
+            onClick={handleRecenter}
+            className="flex items-center justify-center w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+            title="Temukan Saya"
+          >
+            <Navigation size={11} className="transform rotate-45 text-cyan-600" />
           </button>
         </div>
       </div>
 
-      {/* Map Footer Filtering */}
-      <div className="absolute bottom-3 left-3 z-10 flex gap-1.5 pointer-events-auto">
-        <button 
-          onClick={() => setFilterType('all')}
-          className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${filterType === 'all' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-100 text-gray-500 shadow-sm'}`}
-        >
-          Semua
-        </button>
-        {Object.entries(INCIDENT_ICONS).map(([id, Icon]) => (
-          <button 
-            key={id}
-            onClick={() => setFilterType(id)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${filterType === id ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-100 text-gray-500 shadow-sm'}`}
-          >
-            <Icon size={10} />
-            {id}
-          </button>
-        ))}
-      </div>
+      {/* Leaflet DOM container */}
+      <div ref={mapRef} className="w-full h-full bg-slate-50 relative z-10" />
 
-      <APIProvider apiKey={API_KEY} libraries={['visualization']}>
-        <Map
-          defaultCenter={center}
-          defaultZoom={13}
-          mapId="DEMO_MAP_ID"
-          gestureHandling="greedy"
-          disableDefaultUI={true}
-          internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
-          style={{ width: '100%', height: '100%' }}
-        >
-          {viewMode === 'markers' ? (
-            filteredAlerts.map(alert => (
-              <MarkerWithInfo key={alert.id} alert={alert} />
-            ))
-          ) : (
-            <HeatmapLayer points={heatmapPoints} />
-          )}
-        </Map>
-      </APIProvider>
-
+      {/* Overlay Loading State */}
       {loading && (
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-20">
-          <Loader2 className="animate-spin text-blue-600" size={24} />
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-30">
+          <div className="flex flex-col items-center gap-1.5 bg-white p-3 rounded-xl border border-slate-100 shadow-lg">
+            <Loader2 className="animate-spin text-cyan-600" size={18} />
+            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest font-mono">Menghubungkan GPS...</span>
+          </div>
         </div>
       )}
 
-      {alerts.length === 0 && !loading && (
-        <div className="absolute bottom-3 left-3 right-3 z-10 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-center shadow-lg animate-bounce">
-          Belum ada laporan di sekitar. Klik tombol di atas untuk melapor!
-        </div>
-      )}
-
-      <div className="absolute bottom-3 right-3 z-10 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg border border-gray-100 shadow-sm">
-        <span className="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">Data 24 Jam Terakhir</span>
+      {/* Footnote status overlay */}
+      <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-200 shadow-sm pointer-events-none">
+        <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wide font-mono">
+          Free OpenStreetMap • Real-Time GPS Active ({activeMembers.length + alerts.length} Pins)
+        </span>
       </div>
     </div>
   );
 }
-

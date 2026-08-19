@@ -4,7 +4,6 @@ import { useToast } from '../context/ToastContext';
 import { isAdmin } from '../lib/permissions';
 import AuditLog from './AuditLog';
 import BrandingSettings from './organisms/settings/BrandingSettings';
-import WidgetOrderSettings from './organisms/settings/WidgetOrderSettings';
 import FeatureOrderSettings from './organisms/settings/FeatureOrderSettings';
 
 export default function SettingsModule() {
@@ -65,7 +64,6 @@ export default function SettingsModule() {
         </div>
       </div>
 
-      <WidgetOrderSettings />
       <FeatureOrderSettings />
 
       <div className="mt-6 p-3 bg-orange-50 rounded-xl border border-orange-100 flex gap-2">

@@ -51,7 +51,7 @@ export function FundingProjectCard({ project, onContribute }: FundingProjectCard
         </div>
         <button 
           onClick={() => onContribute(project.id)}
-          className="text-[10px] font-black text-blue-600 hover:bg-blue-50 px-4 py-2 min-h-[44px] flex items-center justify-center rounded-lg border border-blue-100 transition-colors"
+          className="text-[10px] font-black text-blue-600 hover:bg-blue-50 px-2 py-2 min-h-[44px] flex items-center justify-center rounded-lg border border-blue-100 transition-colors"
         >
           IKUT MODAL
         </button>

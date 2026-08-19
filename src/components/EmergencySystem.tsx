@@ -1,13 +1,57 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { db, auth } from '../lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { BellRing, ShieldAlert, History, MessageSquare, PhoneCall } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '../context/ToastContext';
 import { isAdmin } from '../lib/permissions';
 import { EmergencyAlert } from './molecules/EmergencyAlert';
 import { SOSConfirmationModal } from './molecules/SOSConfirmationModal';
+import IncidentMap from './IncidentMap';
+
+interface LocationCoords {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}
+
+const getGPSLocation = (): Promise<LocationCoords | null> => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      console.warn("Geolocation is not supported by this browser.");
+      resolve(null);
+      return;
+    }
+    
+    // Set a timeout of 6 seconds to avoid blocking the SOS trigger
+    const timeoutId = setTimeout(() => {
+      console.warn("Geolocation request timed out.");
+      resolve(null);
+    }, 6000);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        clearTimeout(timeoutId);
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        console.warn("Geolocation error:", error);
+        resolve(null);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  });
+};
 
 export default function EmergencySystem() {
   const { profile } = useAuth();
@@ -20,9 +64,31 @@ export default function EmergencySystem() {
   useEffect(() => {
     if (!profile?.tenantId || !profile?.isApproved) return;
 
+    // Process pending SOS requests when back online
+    const processPending = async () => {
+      const pending = JSON.parse(localStorage.getItem('pendingSOS') || '[]');
+      if (pending.length === 0) return;
+      
+      showToast(`Mengirim ${pending.length} laporan darurat yang tertunda...`);
+      for (const sos of pending) {
+        try {
+          await addDoc(collection(db, 'emergencies'), { ...sos, timestamp: serverTimestamp() });
+        } catch (e) {
+          console.error("Failed to resend pending SOS:", e);
+        }
+      }
+      localStorage.setItem('pendingSOS', '[]');
+      showToast("Laporan darurat tertunda berhasil dikirim.");
+    };
+    
+    window.addEventListener('online', processPending);
+    processPending();
+
+    const yesterday = Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
     const q = query(
       collection(db, 'emergencies'), 
-      where('tenantId', '==', profile.tenantId)
+      where('tenantId', '==', profile.tenantId),
+      where('timestamp', '>=', yesterday)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -36,7 +102,10 @@ export default function EmergencySystem() {
       setEmergencies(list);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('online', processPending);
+    };
   }, [profile?.tenantId, profile?.isApproved]);
 
   const sendAlert = async (type: string) => {
@@ -46,45 +115,77 @@ export default function EmergencySystem() {
       const senderAddress = profile.address || 'RT 04 / RW 02 Sektor B';
       const senderName = profile.displayName || profile.email.split('@')[0];
 
-      // Create new SOS incident
-      const docRef = await addDoc(collection(db, 'emergencies'), {
+      // Access exact real-time GPS location
+      showToast("⏳ Mengakses GPS lokasi Anda secara real-time...");
+      const coords = await getGPSLocation();
+
+      let latitude = coords?.latitude || null;
+      let longitude = coords?.longitude || null;
+      let locationAccuracy = coords?.accuracy || null;
+      let isRealGPS = !!coords;
+
+      if (!coords) {
+        // Fallback: SinergiKita center coordinates with slight random noise
+        latitude = -6.2088 + (Math.random() - 0.5) * 0.005;
+        longitude = 106.8456 + (Math.random() - 0.5) * 0.005;
+        locationAccuracy = 150;
+        isRealGPS = false;
+        showToast("⚠️ GPS tidak aktif atau izin diblokir. Menggunakan koordinat estimasi wilayah.");
+      } else {
+        showToast(`✅ GPS Berhasil Dikunci! Akurasi: ${Math.round(locationAccuracy || 0)} meter.`);
+      }
+
+      const sosData = {
         type,
         senderName,
         senderAddress,
         senderId: profile.uid,
         tenantId: profile.tenantId,
         status: 'triggered',
-        timestamp: serverTimestamp(),
-        triggeredAt: new Date().toISOString()
-      });
+        triggeredAt: new Date().toISOString(),
+        latitude,
+        longitude,
+        locationAccuracy,
+        isRealGPS
+      };
 
-      // Dispatch Firebase Cloud Messaging push notification to all community admins via backend
+      // Try sending to Firebase
       try {
-        const token = await auth.currentUser?.getIdToken();
-        if (token) {
-          await fetch('/api/community/emergencies/notify', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              id: docRef.id,
-              type,
-              senderName,
-              senderAddress,
-              tenantId: profile.tenantId
-            })
-          });
+        if (!navigator.onLine) throw new Error("Offline");
+        await addDoc(collection(db, 'emergencies'), { ...sosData, timestamp: serverTimestamp() });
+        
+        // Dispatch Firebase Cloud Messaging push notification to all community admins via backend
+        try {
+          const token = await auth.currentUser?.getIdToken();
+          if (token) {
+            await fetch('/api/community/emergencies/notify', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                type,
+                senderName,
+                senderAddress,
+                tenantId: profile.tenantId,
+                latitude,
+                longitude,
+                isRealGPS
+              })
+            });
+          }
+        } catch (fcmErr) {
+          console.error("FCM dispatch helper failed:", fcmErr);
         }
-      } catch (fcmErr) {
-        console.error("FCM dispatch helper failed:", fcmErr);
+        showToast(`🚨 ALARM SOS DI-TRIGGER!`);
+      } catch (err) {
+        // Queue if offline or firebase fails
+        const pending = JSON.parse(localStorage.getItem('pendingSOS') || '[]');
+        pending.push(sosData);
+        localStorage.setItem('pendingSOS', JSON.stringify(pending));
+        showToast("🚨 SOS tersimpan di memori (Mode Offline). Akan dikirim saat koneksi pulih.");
       }
-
-      // Simulation of Instant Push/WA/SMS dispatch to whole neighborhood
-      showToast(
-        `🚨 ALARM SOS DI-TRIGGER!\n📲 WhatsApp & FCM Push Notification dikirim otomatis ke Sektor Keamanan dan semua Pengurus Komunitas!`
-      );
       
       setShowConfirm(false);
     } catch (err: any) {
@@ -114,6 +215,8 @@ export default function EmergencySystem() {
           />
         ))}
       </AnimatePresence>
+
+      <IncidentMap />
 
       {/* Primary SOS Trigger panel */}
       <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">

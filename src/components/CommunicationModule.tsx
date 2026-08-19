@@ -23,6 +23,8 @@ export default function CommunicationModule() {
     return onSnapshot(q, (snap) => {
       setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    }, (e) => {
+      console.warn("CommunicationModule messages snapshot error:", e);
     });
   }, [profile?.tenantId]);
 
@@ -41,7 +43,7 @@ export default function CommunicationModule() {
   };
 
   return (
-    <div className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100 flex flex-col h-[500px]">
+    <div className="bg-white rounded-[40px] p-4 shadow-sm border border-gray-100 flex flex-col h-[500px]">
       <SectionHeader title="Ruang Obrolan" subtitle="Komunikasi Antar Warga" icon={MessageSquare} colorClass="text-green-600" bgClass="bg-green-50" />
       
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -63,7 +65,7 @@ export default function CommunicationModule() {
         <input 
           type="text" placeholder="Tulis pesan..." value={inputText}
           onChange={e => setInputText(e.target.value)}
-          className="flex-1 px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-green-400"
+          className="flex-1 px-2 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-green-400"
         />
         <button type="submit" className="w-12 h-12 bg-green-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-100 hover:bg-green-700 transition-all">
           <Send size={18} />

@@ -14,7 +14,7 @@ export function TenantCard({ tenant, index, onApprove }: TenantCardProps) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="group bg-white p-5 rounded-3xl shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      className="group bg-white p-3 rounded-3xl shadow-sm border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
     >
       <div className="flex items-center gap-4">
         <div className={`p-4 rounded-2xl transition-colors ${
@@ -51,14 +51,14 @@ export function TenantCard({ tenant, index, onApprove }: TenantCardProps) {
         {tenant.status === 'pending' ? (
           <button 
             onClick={() => onApprove(tenant.id, 'approved')}
-            className="flex-1 sm:flex-none bg-green-600 text-white px-6 py-2.5 rounded-2xl text-xs font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none bg-green-600 text-white px-3 py-2.5 rounded-2xl text-xs font-bold hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
           >
             <CheckCircle size={14} /> Approve
           </button>
         ) : (
           <button 
             onClick={() => onApprove(tenant.id, 'pending')}
-            className="flex-1 sm:flex-none bg-gray-100 text-gray-600 px-6 py-2.5 rounded-2xl text-xs font-bold hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none bg-gray-100 text-gray-600 px-3 py-2.5 rounded-2xl text-xs font-bold hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center gap-2"
           >
             <XCircle size={14} /> Suspend
           </button>

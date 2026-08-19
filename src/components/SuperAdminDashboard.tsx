@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 import { SuperAdminHeader } from './molecules/SuperAdminHeader';
 import { TenantCard } from './molecules/TenantCard';
+import { PendingTenantsList } from './molecules/PendingTenantsList';
 
 export default function SuperAdminDashboard() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -26,7 +27,13 @@ export default function SuperAdminDashboard() {
   const handleApprove = async (id: string, status: 'approved' | 'pending') => {
     await updateDoc(doc(db, 'tenants', id), { status });
     const t = tenants.find(x => x.id === id);
-    if (t && status === 'approved') await updateDoc(doc(db, 'users', t.ownerId), { role: 'admin', tenantId: id, isApproved: true });
+    if (t) {
+      if (status === 'approved') {
+        await updateDoc(doc(db, 'users', t.ownerId), { role: 'admin', tenantId: id, isApproved: true });
+      } else {
+        await updateDoc(doc(db, 'users', t.ownerId), { isApproved: false });
+      }
+    }
   };
 
   const filtered = tenants.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()) || t.id.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -37,18 +44,41 @@ export default function SuperAdminDashboard() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <SuperAdminHeader stats={stats} />
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} /><input type="text" placeholder="Cari..." className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border border-gray-100 shadow-sm outline-none text-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
-        <button className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-500"><LayoutGrid size={20} /></button>
-      </div>
-      <div className="grid gap-4">
-        <AnimatePresence mode="popLayout">
-          {filtered.length === 0 ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white p-16 rounded-3xl border-2 border-dashed border-gray-100 text-center"><h3 className="text-sm font-bold text-gray-900">Tidak ada hasil</h3></motion.div>
-          ) : (
-            filtered.map((t, i) => <TenantCard key={t.id} tenant={t} index={i} onApprove={handleApprove} />)
-          )}
-        </AnimatePresence>
+      
+      {/* 1. Pending Approvals Sub-Component List */}
+      <PendingTenantsList tenants={tenants} onApprove={handleApprove} />
+
+      {/* 2. Search & Full Tenant Database */}
+      <div className="border-t border-gray-100 pt-5 space-y-4">
+        <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">
+          Database Semua Komunitas ({filtered.length})
+        </h3>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="Cari ID atau nama komunitas..." 
+              className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border border-gray-100 shadow-sm outline-none text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-300 transition-all" 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+            />
+          </div>
+          <button className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-500"><LayoutGrid size={20} /></button>
+        </div>
+
+        <div className="grid gap-4">
+          <AnimatePresence mode="popLayout">
+            {filtered.length === 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white p-16 rounded-3xl border-2 border-dashed border-gray-100 text-center">
+                <h3 className="text-sm font-bold text-gray-900">Tidak ada hasil</h3>
+              </motion.div>
+            ) : (
+              filtered.map((t, i) => <TenantCard key={t.id} tenant={t} index={i} onApprove={handleApprove} />)
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );

@@ -49,7 +49,7 @@ service cloud.firestore {
     // Tenants
     // ---------------------------------------------------------
     match /tenants/{tenantId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if isSignedIn() && (isSuperAdmin() || request.auth.uid == request.resource.data.ownerId);
       allow update: if isSignedIn() && (isSuperAdmin() || request.auth.uid == resource.data.ownerId);
       allow delete: if isSuperAdmin();
@@ -59,36 +59,43 @@ service cloud.firestore {
     // Users
     // ---------------------------------------------------------
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      // Allow list/query of users if admin, or if matching the user's verified email (for invitations)
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId || 
+        isAdmin() || 
+        (hasUserData() && resource.data.tenantId == getUserData().tenantId) ||
+        resource.data.email == request.auth.token.email
+      );
+      
       allow list: if isSignedIn() && (
-        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId) ||
+        isAdmin() || 
+        (hasUserData() && resource.data.tenantId == getUserData().tenantId) ||
         resource.data.email == request.auth.token.email
       );
       
       // Allow profile creation for self, or registration by admin
       allow create: if isSignedIn() && (
-        request.auth.uid == userId || 
+        (request.auth.uid == userId && request.resource.data.role != 'superadmin') || 
         (isAdmin() && hasUserData() && request.resource.data.tenantId == getUserData().tenantId)
       );
       
       allow update: if isSignedIn() && (
-        // Case 1: Owner updating their own non-sensitive fields when already in a community
+        // Case 1: Owner updating their own fields (cannot change role or escalate)
         (request.auth.uid == userId && 
-         resource.data.tenantId != null && 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'address', 'photoURL', 'email', 'updatedAt', 'observations', 'status'])) ||
+         request.resource.data.role == resource.data.role) ||
          
-        // Case 2: Owner joining or creating a community for the first time (when tenantId is null/absent)
-        (request.auth.uid == userId && 
-         (!resource.data.keys().hasAll(['tenantId']) || resource.data.tenantId == null) &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tenantId', 'role', 'isApproved', 'displayName', 'phoneNumber', 'address', 'photoURL', 'email', 'updatedAt', 'status']) &&
-         request.resource.data.isApproved == false) ||
-         
-        // Case 3: Admin of the community updating member details
+        // Case 2: Admin of the community updating member details
         (isAdmin() && 
          hasUserData() && 
          resource.data.tenantId == getUserData().tenantId &&
          request.resource.data.tenantId == resource.data.tenantId)
+      );
+
+      allow delete: if isSignedIn() && (
+        // Case 1: Owner deleting their own invitation document
+        (resource.data.email == request.auth.token.email) ||
+        
+        // Case 2: Admin of the community deleting a member profile
+        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId)
       );
     }
 
@@ -151,13 +158,28 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------
+    // Marketplace
+    // ---------------------------------------------------------
+    match /marketplace/{id} {
+      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isSignedIn() && (
+        isSuperAdmin() ||
+        resource.data.sellerUid == request.auth.uid ||
+        (isAdmin() && isMemberOf(resource.data.tenantId))
+      );
+    }
+
+    // ---------------------------------------------------------
     // Koperasi
     // ---------------------------------------------------------
     match /koperasi/{id} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.uid || (isAdmin() && isMemberOf(resource.data.tenantId)));
-      allow list: if isSignedIn() && (resource.data.uid == request.auth.uid || (isAdmin() && isMemberOf(resource.data.tenantId)));
+      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow update: if isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId);
+      allow update: if (isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId)) || 
+                     (isSignedIn() && resource.data.uid == request.auth.uid && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId));
     }
 
     // ---------------------------------------------------------
@@ -224,6 +246,37 @@ service cloud.firestore {
       allow read: if isAdmin() && (isSuperAdmin() || (hasUserData() && resource.data.tenantId == getUserData().tenantId));
       allow list: if isAdmin() && (isSuperAdmin() || (hasUserData() && resource.data.tenantId == getUserData().tenantId));
       allow create: if isSignedIn() && (isSuperAdmin() || (hasUserData() && request.resource.data.tenantId == getUserData().tenantId));
+    }
+
+    // ---------------------------------------------------------
+    // AI Cache Collections
+    // ---------------------------------------------------------
+    match /insights_cache/{id} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isMemberOf(resource.data.tenantId));
+      allow create: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(request.resource.data.tenantId)));
+      allow update: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId)));
+    }
+
+    // ---------------------------------------------------------
+    // Active Locations for Real-Time GPS Tracking
+    // ---------------------------------------------------------
+    match /active_locations/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update: if isSignedIn() && request.auth.uid == id && isMemberOf(request.resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // PTT Messages for Handy Talkie
+    // ---------------------------------------------------------
+    match /ptt_messages/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+    }
+
+    match /smart_tips_cache/{id} {
+      allow read: if isSignedIn() && (isSuperAdmin() || isMemberOf(resource.data.tenantId));
+      allow create: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(request.resource.data.tenantId)));
+      allow update: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId)));
     }
   }
 }

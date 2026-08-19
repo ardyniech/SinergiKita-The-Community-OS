@@ -19,6 +19,10 @@ interface Emergency {
   acceptedAt?: string;
   handlingAt?: string;
   resolvedAt?: string;
+  latitude?: number;
+  longitude?: number;
+  isRealGPS?: boolean;
+  locationAccuracy?: number;
 }
 
 interface EmergencyAlertProps {
@@ -36,6 +40,13 @@ export function EmergencyAlert({ alert, isAdmin, onResolve, currentUser }: Emerg
   const seed = alert.senderName.charCodeAt(0) || 45;
   const simulatedDistance = (seed * 7) % 120 + 8; // Between 8m and 128m
   const isCloseRange = simulatedDistance < 50;
+
+  // Use coordinates from document if present, otherwise compute fallback coordinate for display
+  const hasCoordinates = typeof alert.latitude === 'number' && typeof alert.longitude === 'number';
+  const lat = hasCoordinates ? alert.latitude! : (-6.2088 + (seed % 100) * 0.0001);
+  const lon = hasCoordinates ? alert.longitude! : (106.8456 + (seed % 100) * 0.0001);
+  const isRealGPS = hasCoordinates ? alert.isRealGPS !== false : false;
+  const accuracy = hasCoordinates ? alert.locationAccuracy : 150;
 
   const formatTime = (ts: any) => {
     if (!ts) return null;
@@ -166,6 +177,58 @@ export function EmergencyAlert({ alert, isAdmin, onResolve, currentUser }: Emerg
           <p className="text-emerald-600 font-extrabold mt-0.5">
             [OK] WhatsApp Terkirim ke 5 Tetangga Terdekat
           </p>
+        </div>
+      </div>
+
+      {/* Interactive Free Map Card (OpenStreetMap) */}
+      <div className="bg-white p-2 rounded-lg border border-gray-100 space-y-1.5 text-left">
+        <div className="flex items-center justify-between">
+          <span className="font-extrabold text-[8px] text-gray-400 uppercase tracking-widest flex items-center gap-1">
+            <MapPin size={9} className="text-red-500" /> Peta Lokasi Darurat (OSM)
+          </span>
+          <span className={`text-[7px] font-mono font-bold px-1.5 py-0.5 rounded uppercase leading-none ${
+            isRealGPS 
+              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 animate-pulse' 
+              : 'bg-amber-50 text-amber-600 border border-amber-200'
+          }`}>
+            {isRealGPS ? '🛰️ GPS AKTIF (AKURAT)' : '⚠️ ESTIMASI WILAYAH'}
+          </span>
+        </div>
+
+        <div className="relative w-full h-[150px] rounded-lg overflow-hidden border border-gray-150 bg-gray-50 shadow-inner">
+          <iframe
+            title={`Peta Lokasi SOS ${alert.senderName}`}
+            width="100%"
+            height="100%"
+            src={`https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.0015}%2C${lat - 0.0015}%2C${lon + 0.0015}%2C${lat + 0.0015}&layer=mapnik&marker=${lat}%2C${lon}`}
+            className="w-full h-full border-0"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+
+        <div className="flex items-center justify-between text-[8px] text-gray-500">
+          <span className="font-mono bg-gray-50 px-1 py-0.5 rounded border border-gray-200">
+            LAT: {lat.toFixed(5)}, LON: {lon.toFixed(5)} {accuracy ? `(±${Math.round(accuracy)}m)` : ''}
+          </span>
+          <div className="flex gap-1.5">
+            <a 
+              href={`https://www.google.com/maps?q=${lat},${lon}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-cyan-600 hover:text-cyan-700 font-bold uppercase tracking-wider"
+            >
+              Google Maps ↗
+            </a>
+            <span className="text-gray-300">|</span>
+            <a 
+              href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-emerald-600 hover:text-emerald-700 font-bold uppercase tracking-wider"
+            >
+              OSM Nav ↗
+            </a>
+          </div>
         </div>
       </div>
 

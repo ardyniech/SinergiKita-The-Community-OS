@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -30,13 +30,55 @@ export function RegisterMemberForm({ onClose }: RegisterMemberFormProps) {
     try {
       if (!profile?.tenantId) throw new Error("Tenant ID not found");
 
-      // Check if user already exists in this tenant
-      const q = query(collection(db, 'users'), where('tenantId', '==', profile.tenantId), where('email', '==', email.toLowerCase()));
+      // Check if user already exists globally
+      const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()));
       const snap = await getDocs(q);
       
       if (!snap.empty) {
-        showToast("Warga dengan email ini sudah terdaftar.");
-        setLoading(false);
+        // If there are multiple documents with same email, we'll merge them into the main profile later
+        // For now, check if already in this tenant
+        const inThisTenant = snap.docs.find(doc => doc.data().tenantId === profile.tenantId);
+        if (inThisTenant) {
+          showToast("Warga dengan email ini sudah terdaftar di komunitas Anda.");
+          setLoading(false);
+          return;
+        }
+
+        // Check if already in another tenant
+        const inOtherTenant = snap.docs.find(doc => doc.data().tenantId && doc.data().tenantId !== profile.tenantId);
+        if (inOtherTenant) {
+          showToast(`Warga dengan email ini sudah terdaftar di komunitas lain ("${inOtherTenant.data().tenantName || 'Lain'}").`);
+          setLoading(false);
+          return;
+        }
+
+        // Existing user in system without any community yet: Link/update the first one
+        // and AuthContext will clean up others on their next login if any
+        const mainDoc = snap.docs.find(d => d.id === email.toLowerCase()) || snap.docs[0];
+        const userRef = doc(db, 'users', mainDoc.id);
+        
+        await setDoc(userRef, {
+          tenantId: profile.tenantId,
+          tenantName: tenant?.name || 'Community',
+          role,
+          status: 'active',
+          isApproved: true,
+          phoneNumber: phoneNumber || mainDoc.data().phoneNumber || '',
+          displayName: displayName || mainDoc.data().displayName || email.split('@')[0],
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        // If there were multiple docs, the others are likely "ghost" registrations
+        if (snap.docs.length > 1) {
+          for (const d of snap.docs) {
+            if (d.id !== mainDoc.id) {
+              await deleteDoc(doc(db, 'users', d.id));
+            }
+          }
+        }
+
+        showToast(`Profil warga ditemukan & otomatis digabungkan ke komunitas ${tenant?.name || ''}.`);
+        setEmail(''); setDisplayName(''); setPhoneNumber(''); onClose();
         return;
       }
 
@@ -68,7 +110,7 @@ export function RegisterMemberForm({ onClose }: RegisterMemberFormProps) {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 shadow-sm"
+      className="bg-blue-50 border border-blue-100 rounded-2xl p-3 mb-6 shadow-sm"
     >
       <div className="flex justify-between items-center mb-5">
         <div className="flex items-center gap-3">
@@ -97,7 +139,7 @@ export function RegisterMemberForm({ onClose }: RegisterMemberFormProps) {
           </div>
           <input 
             type="text" placeholder="Nama Lengkap"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-medium"
+            className="w-full px-2 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-medium"
             value={displayName} onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
@@ -105,11 +147,11 @@ export function RegisterMemberForm({ onClose }: RegisterMemberFormProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input 
             type="tel" placeholder="Nomor Telepon"
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-medium"
+            className="w-full px-2 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-medium"
             value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
           />
           <select 
-            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-bold text-gray-700 appearance-none"
+            className="w-full px-2 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-bold text-gray-700 appearance-none"
             value={role} onChange={(e) => setRole(e.target.value as any)}
           >
             <option value="member">Peran: Warga Biasa</option>
