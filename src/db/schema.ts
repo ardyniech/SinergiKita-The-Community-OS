@@ -11,6 +11,7 @@ export const users = pgTable('users', {
 
 export const finances = pgTable('finances', {
   id: serial('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
   userId: integer('user_id')
     .references(() => users.id)
     .notNull(),

@@ -2,7 +2,10 @@ import { AppUser } from '../types';
 
 export const ADMIN_ROLES = ['admin', 'ketua', 'bendahara', 'sekretaris'];
 
-export const SUPERADMIN_EMAILS = ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'];
+const envSuperAdmins = (import.meta as any).env?.VITE_SUPERADMIN_EMAILS;
+export const SUPERADMIN_EMAILS = envSuperAdmins 
+  ? envSuperAdmins.split(',').map((e: string) => e.trim()) 
+  : ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'];
 
 export const isAdmin = (profile: AppUser | null | undefined): boolean => {
   if (!profile) return false;

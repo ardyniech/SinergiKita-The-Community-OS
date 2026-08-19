@@ -6,6 +6,7 @@ import { BellRing, ShieldAlert, History, MessageSquare, PhoneCall } from 'lucide
 import { motion, AnimatePresence } from 'motion/react';
 import { useAudit } from "../context/AuditContext";
 import { useToast } from '../context/ToastContext';
+import { awardPoints } from '../lib/gamification';
 import { isAdmin } from '../lib/permissions';
 import { EmergencyAlert } from './molecules/EmergencyAlert';
 import { SOSConfirmationModal } from './molecules/SOSConfirmationModal';
@@ -181,8 +182,9 @@ export default function EmergencySystem() {
           console.error("FCM dispatch helper failed:", fcmErr);
         }
         showToast(`🚨 ALARM SOS DI-TRIGGER!`);
-        addAuditEntry(`SOS Terpicu: ${type} dari ${senderName}`);
-        addAuditEntry(`SOS Terpicu: ${type} dari ${senderName}`);
+        if (profile?.id) {
+          await awardPoints(profile.id, 30, 'Peduli Warga');
+        }
         addAuditEntry(`SOS Terpicu: ${type} dari ${senderName}`);
       } catch (err) {
         // Queue if offline or firebase fails

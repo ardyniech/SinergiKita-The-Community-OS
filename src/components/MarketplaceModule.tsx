@@ -6,6 +6,7 @@ import { useAudit } from '../context/AuditContext';
 import { MarketplaceItem } from '../types';
 import { ShoppingBag, Wrench, Utensils, Box } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { awardPoints } from '../lib/gamification';
 import { AnimatePresence, motion } from 'motion/react';
 import { MarketplaceHeader } from './molecules/MarketplaceHeader';
 import { MarketplaceFilters } from './molecules/MarketplaceFilters';
@@ -45,6 +46,9 @@ export default function MarketplaceModule() {
     if (!profile?.tenantId) return;
     const waLink = `https://wa.me/${(profile.phoneNumber || '').replace(/^0/, '62')}?text=Halo%20${profile.displayName},%20saya%20tertarik%20dengan%20${newItem.name}`;
     await addDoc(collection(db, 'marketplace'), { ...newItem, price: Number(newItem.price), sellerName: profile.displayName || 'Brother', sellerUid: profile.uid, whatsappLink: waLink, tenantId: profile.tenantId, createdAt: Date.now(), reviews: [] });
+    if (profile.id) {
+      await awardPoints(profile.id, 20, 'Pedagang Aktif');
+    }
     addAuditEntry(`Menambahkan listing produk: ${newItem.name}`);
     setNewItem({ name: '', price: '', description: '', category: 'other', isNegotiable: true });
     setIsAdding(false);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, ShieldCheck, BellRing, Landmark, Share2, Users, Wallet, Rocket, Store, BookMarked, Megaphone, MessageSquare, Radio, Grid, X, HelpCircle } from 'lucide-react';
+import { Settings, ShieldCheck, BellRing, Landmark, Share2, Users, Wallet, Rocket, Store, BookMarked, Megaphone, MessageSquare, Radio, Grid, X, HelpCircle, Trophy } from 'lucide-react';
 import { NavCard } from '../molecules/NavCard';
 import DashboardStats from '../DashboardStats';
 import ActivityLog from '../ActivityLog';
@@ -55,6 +55,7 @@ export function DashboardView({ profile, tenant, stats, onNavigate, isSuperAdmin
     { id: 'social', title: 'Kepedulian', subtitle: 'Bantuan Sosial', icon: Share2, color: 'bg-rose-50 text-rose-500' },
     { id: 'learning', title: 'Panduan', subtitle: 'Edukasi Warga', icon: BookMarked, color: 'bg-cyan-50 text-cyan-600' },
     { id: 'pos', title: 'Kasir POS', subtitle: 'Point of Sale', icon: Wallet, color: 'bg-amber-50 text-amber-600' },
+    { id: 'leaderboard', title: 'Leaderboard', subtitle: 'Peringkat & Poin', icon: Trophy, color: 'bg-yellow-50 text-yellow-600' },
     { id: 'settings', title: 'Setting Admin', subtitle: 'Konfigurasi', icon: Settings, color: 'bg-gray-100 text-gray-700', show: isAdmin(profile) || isSuperAdmin },
     { id: 'superadmin', title: 'Master Console', subtitle: 'Sistem Pusat', icon: ShieldCheck, color: 'bg-blue-600 text-white', show: isSuperAdmin },
   ].filter(item => item.show !== false);

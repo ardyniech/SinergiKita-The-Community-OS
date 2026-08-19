@@ -26,8 +26,9 @@ import TenantSetup from './components/TenantSetup';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import MarketplaceModule from './components/MarketplaceModule';
 import RealTimeNotifications from './components/RealTimeNotifications';
+import LeaderboardView from './components/LeaderboardView';
 
-type View = 'dashboard' | 'emergency' | 'finance' | 'social' | 'directory' | 'koperasi' | 'funding' | 'marketplace' | 'learning' | 'announcements' | 'chat' | 'ptt' | 'settings' | 'superadmin' | 'pos';
+type View = 'dashboard' | 'emergency' | 'finance' | 'social' | 'directory' | 'koperasi' | 'funding' | 'marketplace' | 'learning' | 'announcements' | 'chat' | 'ptt' | 'settings' | 'superadmin' | 'pos' | 'leaderboard';
 
 function MainApp() {
   const { profile, tenant, loading } = useAuth();
@@ -78,6 +79,7 @@ function MainApp() {
     settings: { title: 'Pengaturan', component: <SettingsModule /> },
     superadmin: { title: 'Master Console', component: <SuperAdminDashboard /> },
     pos: { title: 'Kasir (POS)', component: <POSModule /> },
+    leaderboard: { title: 'Leaderboard & Gamifikasi', component: <LeaderboardView /> },
   };
 
   if (currentView !== 'dashboard') return <ModuleContainer title={views[currentView].title} onBack={() => setCurrentView('dashboard')}>{views[currentView].component}</ModuleContainer>;
