@@ -14,10 +14,15 @@ interface ProductCardProps {
   category: Category;
   isOwner: boolean;
   onDelete: (id: string) => void;
+  onShowReviews: (item: MarketplaceItem) => void;
 }
 
-export function ProductCard({ item, category, isOwner, onDelete }: ProductCardProps) {
+export function ProductCard({ item, category, isOwner, onDelete, onShowReviews }: ProductCardProps) {
   const Icon = category.icon;
+  const reviewCount = item.reviews?.length || 0;
+  const averageRating = reviewCount > 0 
+    ? (item.reviews!.reduce((acc, curr) => acc + curr.rating, 0) / reviewCount).toFixed(1)
+    : null;
 
   return (
     <motion.div
@@ -35,11 +40,18 @@ export function ProductCard({ item, category, isOwner, onDelete }: ProductCardPr
       </div>
 
       <h4 className="text-xs font-black text-gray-900 line-clamp-1 uppercase tracking-tight mb-1">{item.name}</h4>
-      <div className="flex gap-1 mb-1.5">
+      <div className="flex gap-1 mb-1.5 items-center">
         {item.isNegotiable && (
           <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[7px] font-black uppercase tracking-widest border border-blue-100">Nego</span>
         )}
         <span className="px-1.5 py-0.5 bg-gray-50 text-gray-500 rounded text-[7px] font-black uppercase tracking-widest border border-gray-100">Ready</span>
+        {averageRating && (
+          <div className="flex items-center gap-0.5 ml-auto cursor-pointer" onClick={() => onShowReviews(item)}>
+            <span className="text-[10px] font-bold text-gray-700">{averageRating}</span>
+            <span className="text-[8px] text-gray-400">({reviewCount})</span>
+            <span className="text-orange-400">★</span>
+          </div>
+        )}
       </div>
       <p className="text-[10px] text-gray-500 leading-snug line-clamp-2 h-7 mb-3">{item.description || 'Tidak ada deskripsi.'}</p>
 
@@ -49,6 +61,12 @@ export function ProductCard({ item, category, isOwner, onDelete }: ProductCardPr
           <p className="text-[10px] font-black text-gray-700">{item.sellerName}</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => onShowReviews(item)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 border border-gray-200 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-gray-50 hover:text-gray-900 transition-all"
+          >
+            Ulasan
+          </button>
           {isOwner ? (
             <button
               onClick={() => onDelete(item.id)}

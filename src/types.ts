@@ -76,6 +76,16 @@ export interface MarketplaceItem {
   createdAt: number;
   tenantId: string;
   isNegotiable?: boolean;
+  reviews?: ProductReview[];
+}
+
+export interface ProductReview {
+  id: string;
+  rating: number; // 1-5
+  comment: string;
+  reviewerName: string;
+  reviewerUid: string;
+  timestamp: number;
 }
 
 export interface SocialAlert {

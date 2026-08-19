@@ -9,6 +9,7 @@ import {
   PiggyBank, ArrowUpRight, Rocket, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { CSVExportButton } from './molecules/CSVExportButton';
 import { 
   collection, query, where, onSnapshot, orderBy, 
   addDoc, updateDoc, deleteDoc, doc, serverTimestamp, increment 
@@ -738,9 +739,18 @@ export default function PostgresFinanceModule() {
                   >
                     <Plus size={11} /> Tambah
                   </button>
-                  <button onClick={exportToCSV} className="flex items-center gap-1 text-[9px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors font-black uppercase tracking-widest">
-                    <Table size={11} /> CSV
-                  </button>
+                  <CSVExportButton 
+                    data={records} 
+                    filename="ledger-postgres" 
+                    columns={[
+                      {key: "id", label: "ID"}, 
+                      {key: "description", label: "Deskripsi"}, 
+                      {key: "date", label: "Tanggal"}, 
+                      {key: "type", label: "Tipe"}, 
+                      {key: "amount", label: "Jumlah (Rp)"}
+                    ]} 
+                    className="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100" 
+                  />
                   <button onClick={exportToPDF} className="flex items-center gap-1 text-[9px] bg-rose-50 text-rose-700 px-2.5 py-1 rounded-lg hover:bg-rose-100 transition-colors font-black uppercase tracking-widest">
                     <FileText size={11} /> PDF
                   </button>

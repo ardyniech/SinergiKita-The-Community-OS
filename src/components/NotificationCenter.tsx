@@ -61,7 +61,7 @@ export default function NotificationCenter() {
       });
       unsubscribers.push(unsub);
 
-      // 2b. Admin: New Incidents
+      // 2b. Admin: New Incidents & Social Assistance Requests
       const incidentQ = query(
         collection(db, 'social_alerts'),
         where('tenantId', '==', profile.tenantId),
@@ -89,6 +89,25 @@ export default function NotificationCenter() {
         console.error("NotificationCenter incident error:", error);
       });
       unsubscribers.push(unsubIncident);
+
+      // 2c. Admin: Social Assistance Requests
+      const santunanQ = query(
+        collection(db, 'santunan_claims'),
+        where('tenantId', '==', profile.tenantId),
+        where('status', '==', 'pending')
+      );
+      const unsubSantunan = onSnapshot(santunanQ, (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: `santunan-${doc.id}`,
+          title: 'Permohonan Bantuan Sosial Baru',
+          description: `${doc.data().recipientName} mengajukan bantuan ${doc.data().type} sejumlah Rp ${doc.data().amount.toLocaleString('id-ID')}.`,
+          type: 'request' as const
+        }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('santunan-')), ...items]);
+      }, (error) => {
+        console.error("NotificationCenter santunan error:", error);
+      });
+      unsubscribers.push(unsubSantunan);
     }
 
     // 3. All Members: Active Proposals (Community Updates)
@@ -154,15 +173,91 @@ export default function NotificationCenter() {
         where('tenantId', '==', profile.tenantId)
       );
       const unsub = onSnapshot(q, (snapshot) => {
-        const items = snapshot.docs.map(doc => ({
-          id: `funding-${doc.id}`,
-          title: 'Kesempatan Pendanaan Baru',
-          description: `Proyek baru "${doc.data().title}" terbuka untuk pendanaan.`,
-          type: 'update' as const
-        }));
+        const items = snapshot.docs
+          .filter(doc => {
+            const data = doc.data();
+            if (!data.createdAt) return true; // fallback
+            let date;
+            if (typeof data.createdAt === 'number') {
+              date = new Date(data.createdAt);
+            } else if (data.createdAt.toDate) {
+              date = data.createdAt.toDate();
+            } else if (typeof data.createdAt === 'string') {
+              date = new Date(data.createdAt);
+            } else {
+              return true;
+            }
+            const diffHours = (new Date().getTime() - date.getTime()) / (1000 * 60 * 60);
+            return diffHours <= 24;
+          })
+          .map(doc => ({
+            id: `funding-${doc.id}`,
+            title: 'Kesempatan Pendanaan Baru',
+            description: `Proyek baru "${doc.data().title}" terbuka untuk pendanaan.`,
+            type: 'update' as const
+          }));
         setNotifications(prev => [...prev.filter(n => !n.id.startsWith('funding-')), ...items]);
       }, (error) => {
         console.warn("NotificationCenter funding projects error:", error);
+      });
+      unsubscribers.push(unsub);
+    }
+
+    // 6. Commerce/Marketplace: New Product Listings
+    if (profile.tenantId && profile.isApproved) {
+      const q = query(
+        collection(db, 'marketplace'),
+        where('tenantId', '==', profile.tenantId),
+        orderBy('createdAt', 'desc'),
+        limit(5)
+      );
+      const unsub = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs
+          .filter(doc => {
+            const data = doc.data();
+            if (!data.createdAt) return true;
+            const diffHours = (new Date().getTime() - data.createdAt) / (1000 * 60 * 60);
+            return diffHours <= 24; // Only show products listed in the last 24 hours
+          })
+          .map(doc => ({
+            id: `marketplace-${doc.id}`,
+            title: 'Produk Baru di Marketplace',
+            description: `${doc.data().sellerName} baru saja menambahkan "${doc.data().name}".`,
+            type: 'update' as const
+          }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('marketplace-')), ...items]);
+      }, (error) => {
+        console.warn("NotificationCenter marketplace error:", error);
+      });
+      unsubscribers.push(unsub);
+    }
+
+    // 7. Announcements
+    if (profile.tenantId && profile.isApproved) {
+      const q = query(
+        collection(db, 'announcements'),
+        where('tenantId', '==', profile.tenantId),
+        orderBy('createdAt', 'desc'),
+        limit(3)
+      );
+      const unsub = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs
+          .filter(doc => {
+            const data = doc.data();
+            if (!data.createdAt) return true;
+            const date = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+            const diffHours = (new Date().getTime() - date.getTime()) / (1000 * 60 * 60);
+            return diffHours <= 24; // Only show recent announcements
+          })
+          .map(doc => ({
+            id: `announcement-${doc.id}`,
+            title: 'Pengumuman Baru',
+            description: doc.data().title || 'Pengumuman dari pengurus',
+            type: 'update' as const
+          }));
+        setNotifications(prev => [...prev.filter(n => !n.id.startsWith('announcement-')), ...items]);
+      }, (error) => {
+        console.warn("NotificationCenter announcements error:", error);
       });
       unsubscribers.push(unsub);
     }

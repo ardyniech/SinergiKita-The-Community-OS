@@ -1,6 +1,7 @@
 import { Users, UserPlus, ChartBar, ShieldCheck } from 'lucide-react';
 import { MemberBulkActions } from './MemberBulkActions';
 import { AppUser, AppProfile } from '../../types';
+import { CSVExportButton } from './CSVExportButton';
 
 interface MemberHeaderProps {
   members: AppUser[];
@@ -23,6 +24,15 @@ export function MemberHeader({
   showPermissions = false,
   setShowPermissions
 }: MemberHeaderProps) {
+  const exportColumns = [
+    { key: 'displayName', label: 'Nama Lengkap' },
+    { key: 'email', label: 'Email' },
+    { key: 'phoneNumber', label: 'No. Handphone' },
+    { key: 'role', label: 'Peran' },
+    { key: 'status', label: 'Status' },
+    { key: 'isApproved', label: 'Disetujui' }
+  ];
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div className="flex items-center gap-2">
@@ -35,6 +45,11 @@ export function MemberHeader({
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <MemberBulkActions members={members} />
+          <CSVExportButton 
+            data={members} 
+            filename="data-warga" 
+            columns={exportColumns}
+          />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button 

@@ -3,12 +3,13 @@ import { Transaction } from '../types';
 import { useToast } from '../context/ToastContext';
 import { useAudit } from '../context/AuditContext';
 import { useAuth } from '../context/AuthContext';
-import { Download, FileText, Table, Plus, ShieldCheck, Check, AlertCircle, RefreshCw, Send, Users, DollarSign, Wallet, Loader2 } from 'lucide-react';
+import { Download, FileText, Table, Plus, FileSpreadsheet, ShieldCheck, Check, AlertCircle, RefreshCw, Send, Users, DollarSign, Wallet, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { collection, query, where, onSnapshot, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
+import { CSVExportButton } from './molecules/CSVExportButton';
 
 interface PendingApproval {
   id: string;
@@ -433,13 +434,18 @@ export default function TransactionLedger() {
                     <Plus size={11} /> Tambah
                   </button>
                 )}
-                <button 
-                  onClick={exportToCSV} 
-                  className="flex items-center gap-1 text-[9px] bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors font-black uppercase tracking-widest"
-                  title="Ekspor CSV"
-                >
-                  <Table size={11} /> CSV
-                </button>
+                <CSVExportButton 
+                  data={transactions} 
+                  filename="ledger-kas" 
+                  columns={[
+                    {key: "id", label: "ID"}, 
+                    {key: "description", label: "Deskripsi"}, 
+                    {key: "date", label: "Tanggal"}, 
+                    {key: "type", label: "Tipe"}, 
+                    {key: "amount", label: "Jumlah (Rp)"}
+                  ]} 
+                  className="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100" 
+                />
                 <button 
                   onClick={exportToPDF} 
                   className="flex items-center gap-1 text-[9px] bg-rose-50 text-rose-700 px-2.5 py-1 rounded-lg hover:bg-rose-100 transition-colors font-black uppercase tracking-widest"

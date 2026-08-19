@@ -3,6 +3,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc } from 
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useAudit } from '../context/AuditContext';
 import { AnimatePresence, motion } from 'motion/react';
 import { MemberCard } from './molecules/MemberCard';
 import { MemberAnalytics } from './molecules/MemberAnalytics';
@@ -18,6 +19,7 @@ import { X, Save, CheckCircle, Loader2, Camera, Upload, RotateCcw, AlertCircle, 
 export default function MemberDirectory() {
   const { profile } = useAuth();
   const { showToast } = useToast();
+  const { addAuditEntry } = useAudit();
   const [members, setMembers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -171,6 +173,7 @@ export default function MemberDirectory() {
         isCritical: editForm.isCritical,
         observations: editForm.observations.trim()
       });
+      addAuditEntry(`Memperbarui profil warga: ${editForm.displayName}`);
       showToast(`Data warga ${editForm.displayName} berhasil diperbarui.`);
       setEditingMember(null);
     } catch (err: any) {
@@ -188,6 +191,7 @@ export default function MemberDirectory() {
         isApproved: true,
         status: 'active'
       });
+      addAuditEntry(`Menyetujui pendaftaran warga: ${editForm.displayName || 'Anonim'}`);
       showToast(`✅ Warga ${editForm.displayName || 'ini'} telah disetujui bergabung!`);
       setEditingMember(null);
     } catch (err: any) {
@@ -203,6 +207,7 @@ export default function MemberDirectory() {
     setSaveLoading(true);
     try {
       await deleteDoc(doc(db, 'users', deletingMember.id));
+      addAuditEntry(`Menghapus data warga: ${deletingMember.displayName || deletingMember.email}`);
       showToast(`🗑️ Warga "${deletingMember.displayName || deletingMember.email}" berhasil dihapus.`);
       setDeletingMember(null);
       setEditingMember(null);
@@ -242,6 +247,7 @@ export default function MemberDirectory() {
     await updateDoc(doc(db, 'users', memberId), {
       role: newRole
     });
+    addAuditEntry(`Mengubah peran anggota menjadi: ${newRole}`);
   };
 
   if (loading) {

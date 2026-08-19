@@ -4,6 +4,7 @@ import { db, auth } from '../lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { BellRing, ShieldAlert, History, MessageSquare, PhoneCall } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAudit } from "../context/AuditContext";
 import { useToast } from '../context/ToastContext';
 import { isAdmin } from '../lib/permissions';
 import { EmergencyAlert } from './molecules/EmergencyAlert';
@@ -56,6 +57,7 @@ const getGPSLocation = (): Promise<LocationCoords | null> => {
 export default function EmergencySystem() {
   const { profile } = useAuth();
   const { showToast } = useToast();
+  const { addAuditEntry } = useAudit();
   const [emergencies, setEmergencies] = useState<any[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -179,6 +181,9 @@ export default function EmergencySystem() {
           console.error("FCM dispatch helper failed:", fcmErr);
         }
         showToast(`🚨 ALARM SOS DI-TRIGGER!`);
+        addAuditEntry(`SOS Terpicu: ${type} dari ${senderName}`);
+        addAuditEntry(`SOS Terpicu: ${type} dari ${senderName}`);
+        addAuditEntry(`SOS Terpicu: ${type} dari ${senderName}`);
       } catch (err) {
         // Queue if offline or firebase fails
         const pending = JSON.parse(localStorage.getItem('pendingSOS') || '[]');
