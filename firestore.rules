@@ -18,20 +18,29 @@ service cloud.firestore {
     
     function isSuperAdmin() {
       return isSignedIn() && (
-        request.auth.token.email in ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'] ||
-        (hasUserData() && getUserData().role == 'superadmin' && getUserData().isApproved == true)
+        (request.auth.token.keys().hasAll(['admin']) && request.auth.token.admin == true) ||
+        (hasUserData() && getUserData().role == 'superadmin')
       );
     }
     
     function isAdmin() {
       return isSignedIn() && (
         isSuperAdmin() || 
-        (hasUserData() && getUserData().role in ['admin', 'ketua', 'bendahara', 'sekretaris', 'Admin'] && getUserData().isApproved == true)
+        (hasUserData() && getUserData().role in ['admin', 'ketua', 'bendahara', 'sekretaris'] && getUserData().isApproved == true)
       );
     }
 
     function isMemberOf(tenantId) {
-      return isSignedIn() && hasUserData() && getUserData().tenantId == tenantId;
+      return isSignedIn() && 
+             hasUserData() && 
+             getUserData().tenantId == tenantId &&
+             (getUserData().isApproved == true || getUserData().role == 'superadmin');
+    }
+
+    function isMemberOfNoApproval(tenantId) {
+      return isSignedIn() && 
+             hasUserData() && 
+             getUserData().tenantId == tenantId;
     }
     
     function isValidId(id) {
@@ -49,7 +58,7 @@ service cloud.firestore {
     // Tenants
     // ---------------------------------------------------------
     match /tenants/{tenantId} {
-      allow read: if true;
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && (isSuperAdmin() || request.auth.uid == request.resource.data.ownerId);
       allow update: if isSignedIn() && (isSuperAdmin() || request.auth.uid == resource.data.ownerId);
       allow delete: if isSuperAdmin();
@@ -59,224 +68,181 @@ service cloud.firestore {
     // Users
     // ---------------------------------------------------------
     match /users/{userId} {
-      allow read: if isSignedIn() && (
+      allow read, list: if isSignedIn() && (
         request.auth.uid == userId || 
         isAdmin() || 
         (hasUserData() && resource.data.tenantId == getUserData().tenantId) ||
         resource.data.email == request.auth.token.email
       );
       
-      allow list: if isSignedIn() && (
-        isAdmin() || 
-        (hasUserData() && resource.data.tenantId == getUserData().tenantId) ||
-        resource.data.email == request.auth.token.email
-      );
-      
-      // Allow profile creation for self, or registration by admin
-      allow create: if isSignedIn() && (
-        (request.auth.uid == userId && request.resource.data.role != 'superadmin') || 
-        (isAdmin() && hasUserData() && request.resource.data.tenantId == getUserData().tenantId)
-      );
+      allow create: if isSignedIn();
       
       allow update: if isSignedIn() && (
-        // Case 1: Owner updating their own fields (cannot change role or escalate)
-        (request.auth.uid == userId && 
-         request.resource.data.role == resource.data.role) ||
-         
-        // Case 2: Admin of the community updating member details
-        (isAdmin() && 
-         hasUserData() && 
-         resource.data.tenantId == getUserData().tenantId &&
-         request.resource.data.tenantId == resource.data.tenantId)
+        request.auth.uid == userId ||
+        isAdmin()
       );
 
       allow delete: if isSignedIn() && (
-        // Case 1: Owner deleting their own invitation document
-        (resource.data.email == request.auth.token.email) ||
-        
-        // Case 2: Admin of the community deleting a member profile
-        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId)
+        resource.data.email == request.auth.token.email ||
+        isAdmin()
       );
     }
 
     // ---------------------------------------------------------
-    // Transactions
+    // Transactions & Finance
     // ---------------------------------------------------------
     match /transactions/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create: if isAdmin() && isMemberOf(request.resource.data.tenantId);
-      allow update: if isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId);
-    }
-
-    // ---------------------------------------------------------
-    // Proposals
-    // ---------------------------------------------------------
-    match /proposals/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
-    }
-
-    // ---------------------------------------------------------
-    // Emergencies
-    // ---------------------------------------------------------
-    match /emergencies/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
       allow update: if isAdmin() && isMemberOf(resource.data.tenantId);
     }
 
-    // ---------------------------------------------------------
-    // Recurring
-    // ---------------------------------------------------------
     match /recurring/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create: if isAdmin() && isMemberOf(request.resource.data.tenantId);
-      allow update: if isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId);
-    }
-
-    // ---------------------------------------------------------
-    // Social Alerts
-    // ---------------------------------------------------------
-    match /social_alerts/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-    }
-
-    // ---------------------------------------------------------
-    // Products
-    // ---------------------------------------------------------
-    match /products/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
-    }
-
-    // ---------------------------------------------------------
-    // Marketplace
-    // ---------------------------------------------------------
-    match /marketplace/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow update, delete: if isSignedIn() && (
-        isSuperAdmin() ||
-        resource.data.sellerUid == request.auth.uid ||
-        (isAdmin() && isMemberOf(resource.data.tenantId))
-      );
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
     // Koperasi
     // ---------------------------------------------------------
     match /koperasi/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+
+    match /koperasi_loans/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow update: if (isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId)) || 
-                     (isSignedIn() && resource.data.uid == request.auth.uid && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId));
+      allow update: if (isAdmin() && isMemberOf(resource.data.tenantId)) || 
+                     (isSignedIn() && resource.data.uid == request.auth.uid && isMemberOf(resource.data.tenantId));
     }
 
     // ---------------------------------------------------------
-    // Projects
+    // Funding
     // ---------------------------------------------------------
-    match /projects/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+    match /funding_projects/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
       allow update: if isSignedIn() && isMemberOf(resource.data.tenantId);
+    }
+
+    match /funding_contributions/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // Marketplace
+    // ---------------------------------------------------------
+    match /marketplace_products/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isSignedIn() && (
+        resource.data.sellerId == request.auth.uid ||
+        (isAdmin() && isMemberOf(resource.data.tenantId))
+      );
+    }
+
+    match /marketplace_orders/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId) && (
+        request.auth.uid == resource.data.buyerId ||
+        request.auth.uid == resource.data.sellerId ||
+        isAdmin()
+      );
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isSignedIn() && (isAdmin() && isMemberOf(resource.data.tenantId));
+    }
+
+    // ---------------------------------------------------------
+    // Social Feed
+    // ---------------------------------------------------------
+    match /social_posts/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isSignedIn() && (
+        resource.data.authorId == request.auth.uid ||
+        (isAdmin() && isMemberOf(resource.data.tenantId))
+      );
+    }
+
+    match /post_comments/{id} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------
+    // POS System
+    // ---------------------------------------------------------
+    match /pos_products/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+
+    match /pos_transactions/{id} {
+      allow read, list: if isSignedIn() && (isAdmin() || isMemberOf(resource.data.tenantId));
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
     // Learning
     // ---------------------------------------------------------
-    match /learning/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+    match /learning_lessons/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
 
-    // ---------------------------------------------------------
-    // Announcements
-    // ---------------------------------------------------------
-    match /announcements/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    match /user_learning_progress/{id} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
     }
 
     // ---------------------------------------------------------
-    // Messages
+    // Proposals & SOS
     // ---------------------------------------------------------
-    match /messages/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-    }
-
-    // ---------------------------------------------------------
-    // Transaction Approvals
-    // ---------------------------------------------------------
-    match /transaction_approvals/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
-    }
-
-    // ---------------------------------------------------------
-    // Santunan Claims
-    // ---------------------------------------------------------
-    match /santunan_claims/{id} {
-      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow update: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    match /proposals/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
       allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
     }
 
-    // ---------------------------------------------------------
-    // Audit Logs
-    // ---------------------------------------------------------
-    match /audit_logs/{id} {
-      allow read: if isAdmin() && (isSuperAdmin() || (hasUserData() && resource.data.tenantId == getUserData().tenantId));
-      allow list: if isAdmin() && (isSuperAdmin() || (hasUserData() && resource.data.tenantId == getUserData().tenantId));
-      allow create: if isSignedIn() && (isSuperAdmin() || (hasUserData() && request.resource.data.tenantId == getUserData().tenantId));
+    match /emergencies/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    match /social_alerts/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+    }
+
+    match /announcements/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
-    // AI Cache Collections
-    // ---------------------------------------------------------
-    match /insights_cache/{id} {
-      allow read: if isSignedIn() && (isSuperAdmin() || isMemberOf(resource.data.tenantId));
-      allow create: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(request.resource.data.tenantId)));
-      allow update: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId)));
-    }
-
-    // ---------------------------------------------------------
-    // Active Locations for Real-Time GPS Tracking
+    // Utils (Audit, Locations, etc)
     // ---------------------------------------------------------
     match /active_locations/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create, update: if isSignedIn() && request.auth.uid == id && isMemberOf(request.resource.data.tenantId);
+      allow create, update: if isSignedIn() && request.auth.uid == id && isMemberOfNoApproval(request.resource.data.tenantId);
     }
 
-    // ---------------------------------------------------------
-    // PTT Messages for Handy Talkie
-    // ---------------------------------------------------------
-    match /ptt_messages/{id} {
-      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+    match /audit_logs/{id} {
+      allow read, list: if isAdmin();
+      allow create: if isSignedIn();
+    }
+
+    match /insights_cache/{id} {
+      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
 
     match /smart_tips_cache/{id} {
-      allow read: if isSignedIn() && (isSuperAdmin() || isMemberOf(resource.data.tenantId));
-      allow create: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(request.resource.data.tenantId)));
-      allow update: if isSignedIn() && (isSuperAdmin() || (isAdmin() && isMemberOf(resource.data.tenantId) && isMemberOf(request.resource.data.tenantId)));
+      allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
   }
 }

@@ -1,7 +1,8 @@
-import { initializeApp } from 'firebase/app';
+import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { 
+  getFirestore,
   initializeFirestore, 
   persistentLocalCache, 
   persistentMultipleTabManager,
@@ -10,16 +11,23 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
-// Use initializeFirestore with modern cache settings to replace deprecated enableMultiTabIndexedDbPersistence
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-}, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore with persistence, or get existing instance
+let firestoreDb;
+try {
+  firestoreDb = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
+    })
+  }, (firebaseConfig as any).firestoreDatabaseId);
+} catch (e) {
+  firestoreDb = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
+}
+
+export const db = firestoreDb;
 
 export enum OperationType {
   CREATE = 'create',

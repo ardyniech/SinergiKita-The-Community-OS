@@ -1,14 +1,15 @@
 import { motion } from 'motion/react';
-import { ShieldCheck, Clock, Users, CheckCircle, XCircle } from 'lucide-react';
+import { ShieldCheck, Clock, Users, CheckCircle, XCircle, Coins } from 'lucide-react';
 import { Tenant } from '../../types';
 
 interface TenantCardProps {
   tenant: Tenant;
   index: number;
   onApprove: (id: string, status: 'approved' | 'pending') => void;
+  onManageLicense: (tenant: Tenant) => void;
 }
 
-export function TenantCard({ tenant, index, onApprove }: TenantCardProps) {
+export function TenantCard({ tenant, index, onApprove, onManageLicense }: TenantCardProps) {
   return (
     <motion.div 
       initial={{ opacity: 0, x: -20 }}
@@ -48,6 +49,13 @@ export function TenantCard({ tenant, index, onApprove }: TenantCardProps) {
       </div>
 
       <div className="flex gap-2">
+        <button 
+          onClick={() => onManageLicense(tenant)}
+          className="flex-1 sm:flex-none bg-amber-500 text-white px-3 py-2.5 rounded-2xl text-xs font-bold hover:bg-amber-600 transition-all flex items-center justify-center gap-2 shadow-xs"
+        >
+          <Coins size={14} /> Lisensi Fitur
+        </button>
+
         {tenant.status === 'pending' ? (
           <button 
             onClick={() => onApprove(tenant.id, 'approved')}

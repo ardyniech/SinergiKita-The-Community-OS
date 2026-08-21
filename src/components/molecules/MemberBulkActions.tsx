@@ -135,14 +135,14 @@ export function MemberBulkActions({ members }: MemberBulkActionsProps) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2.5">
       <button
         onClick={handleExportCSV}
         disabled={loading || !members.length}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50"
+        className="btn-3d flex items-center gap-2 px-3 py-1.5 bg-white/80 text-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white transition-all disabled:opacity-50 shadow-3d-sm active:translate-y-0.5"
       >
-        <Download size={12} />
-        Ekspor CSV
+        <Download size={14} />
+        Export CSV
       </button>
 
       <div className="relative">
@@ -156,19 +156,19 @@ export function MemberBulkActions({ members }: MemberBulkActionsProps) {
         <button
           onClick={handleImportClick}
           disabled={loading}
-          className="flex items-center gap-2 px-3 py-1.5 bg-white border border-blue-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 transition-all disabled:opacity-50"
+          className="btn-3d flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest border border-indigo-400 transition-all disabled:opacity-50 shadow-3d-sm active:translate-y-0.5"
         >
-          {loading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-          Impor CSV
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+          Import CSV
         </button>
       </div>
 
       <button
         onClick={downloadTemplate}
-        className="flex items-center gap-1.5 text-[8px] font-bold text-gray-400 hover:text-blue-600 transition-colors uppercase tracking-tight"
+        className="flex items-center gap-1.5 text-[8px] font-black text-slate-400 hover:text-indigo-600 transition-all uppercase tracking-widest px-2 opacity-70 hover:opacity-100"
       >
-        <FileSpreadsheet size={10} />
-        Unduh Template
+        <FileSpreadsheet size={12} />
+        Download Template
       </button>
     </div>
   );

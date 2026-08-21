@@ -128,7 +128,7 @@ export default function LeaderboardView() {
         })}
 
         {users.length === 0 && !loading && (
-          <div className="p-8 text-center text-slate-400">
+          <div className="p-4 text-center text-slate-400">
             <Award size={32} className="mx-auto mb-2 opacity-40 text-amber-500" />
             <p className="text-xs font-bold">Belum ada data peringkat warga</p>
           </div>

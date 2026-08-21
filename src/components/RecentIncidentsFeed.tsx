@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Berisi feed insiden terintegrasi waktu nyata dengan filter status, sistem eskalasi, dan tombol persetujuan admin.
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, orderBy, limit, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';

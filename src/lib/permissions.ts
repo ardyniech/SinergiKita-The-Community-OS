@@ -9,12 +9,14 @@ export const SUPERADMIN_EMAILS = envSuperAdmins
 
 export const isAdmin = (profile: AppUser | null | undefined): boolean => {
   if (!profile) return false;
-  return ADMIN_ROLES.includes(profile.role) || profile.role === 'superadmin' || SUPERADMIN_EMAILS.includes(profile.email || '');
+  const hasAdminRole = ADMIN_ROLES.includes(profile.role) || profile.role === 'superadmin';
+  const isEmailSuperAdmin = SUPERADMIN_EMAILS.includes(profile.email || '');
+  return (hasAdminRole && profile.isApproved) || isEmailSuperAdmin;
 };
 
 export const isSuperAdmin = (profile: AppUser | null | undefined): boolean => {
   if (!profile) return false;
-  return profile.role === 'superadmin' || SUPERADMIN_EMAILS.includes(profile.email || '');
+  return (profile.role === 'superadmin' && profile.isApproved) || SUPERADMIN_EMAILS.includes(profile.email || '');
 };
 
 export const getRoleLabel = (role: string): string => {

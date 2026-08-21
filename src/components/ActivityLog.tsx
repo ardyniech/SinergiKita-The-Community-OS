@@ -48,8 +48,8 @@ export default function ActivityLog() {
                 </time>
               </div>
               
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 group-hover:bg-white group-hover:shadow-md transition-all duration-300">
-                <p className="text-[11px] text-gray-600 leading-snug">
+              <div className="pl-2 border-l-2 border-slate-200/80 transition-all duration-300">
+                <p className="text-[11px] text-slate-600 leading-snug">
                   {log.action}
                 </p>
               </div>

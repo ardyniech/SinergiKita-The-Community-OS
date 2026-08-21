@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Halaman arahan (LandingPage) merupakan pusat display branding komprehensif, fitur eksplorasi interaktif sandbox, dan gerbang masuk satu-atap.
 import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -236,7 +237,7 @@ export default function LandingPage() {
           </div>
 
           {/* SinergiKita Live Customizer Sandbox */}
-          <div className="tech-card p-3 rounded-2xl space-y-5 bg-white/95 border-l-4 border-l-cyan-500">
+          <div className="tech-card p-3 rounded-xl space-y-5 bg-white/95 border-l-4 border-l-cyan-500">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 bg-slate-50 text-slate-600 rounded-lg border border-slate-200">
@@ -376,7 +377,7 @@ export default function LandingPage() {
                   initial={{ scale: 0.95, y: 10 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.95, y: 10 }}
-                  className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[85vh]"
+                  className="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[85vh]"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Modal Header bar */}
@@ -550,7 +551,7 @@ export default function LandingPage() {
             )}
           </AnimatePresence>
 
-          <div className="tech-card p-3 rounded-2xl space-y-4 bg-white/95">
+          <div className="tech-card p-3 rounded-xl space-y-4 bg-white/95">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
                 <Globe size={16} className="text-cyan-600" />
@@ -621,7 +622,7 @@ export default function LandingPage() {
 
         {/* RIGHT COLUMN: Authentication Portal Card (5 cols) */}
         <div id="portal" className="lg:col-span-5 lg:sticky lg:top-20 space-y-6">
-          <div className="tech-card p-1 rounded-2xl shadow-2xl border border-slate-200 bg-white/95 group">
+          <div className="tech-card p-1 rounded-xl shadow-2xl border border-slate-200 bg-white/95 group">
             <div className="p-4 bg-slate-900 text-white rounded-t-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
               <div className="flex items-center gap-2 mb-1.5 relative z-10">
@@ -637,7 +638,7 @@ export default function LandingPage() {
           </div>
 
           {/* Quick Informational Guide */}
-          <div className="bg-white p-3 rounded-2xl border border-slate-200 space-y-4 shadow-sm relative overflow-hidden">
+          <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-4 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
             <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
               <HelpCircle size={14} className="text-cyan-600" />

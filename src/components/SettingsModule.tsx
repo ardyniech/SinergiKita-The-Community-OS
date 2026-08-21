@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { isAdmin } from '../lib/permissions';
 import AuditLog from './AuditLog';
-import BrandingSettings from './organisms/settings/BrandingSettings';
+import CommunitySettings from './organisms/settings/CommunitySettings';
+import TemplateButtonsSettings from './organisms/settings/TemplateButtonsSettings';
 import FeatureOrderSettings from './organisms/settings/FeatureOrderSettings';
 
 export default function SettingsModule() {
@@ -39,9 +40,13 @@ export default function SettingsModule() {
         </div>
       </div>
 
-      <BrandingSettings />
+      <CommunitySettings />
+      
+      <div className="mt-6">
+        <TemplateButtonsSettings />
+      </div>
 
-      <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+      <div className="my-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
         <h3 className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-2.5 flex items-center gap-2">
           Undang Anggota
         </h3>

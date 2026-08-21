@@ -1,9 +1,14 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" class="h-full bg-slate-100">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SinergiKita | Sahabat Komunitas Warga</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#f1f5f9" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>SinergiKita | Community Mobile OS</title>
     <!-- Google Fonts Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,6 +16,153 @@
     <!-- Leaflet CSS & JS for Free OpenStreetMap -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <style>
+      /* Native App UX Optimizations */
+      html, body {
+        height: 100%;
+        overscroll-behavior-y: none;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
+        background: radial-gradient(circle at top left, #f8fafc 0%, #f1f5f9 100%);
+      }
+      input, textarea {
+        user-select: text;
+      }
+      /* Smooth touch scrolling */
+      .native-scroll {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+    </style>
+    <script>
+      (function() {
+        // Global error suppressor for benign Leaflet unmounted element positioning
+        window.addEventListener('error', function(event) {
+          if (event && event.message && event.message.indexOf('_leaflet_pos') !== -1) {
+            event.preventDefault();
+            if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (event && event.reason && event.reason.message && event.reason.message.indexOf('_leaflet_pos') !== -1) {
+            event.preventDefault();
+            return true;
+          }
+        }, true);
+
+        function patchLeaflet() {
+          var L = window.L;
+          if (!L || L._patchedSafely) return;
+          L._patchedSafely = true;
+
+          if (L.DomUtil) {
+            L.DomUtil.setPosition = function(el, point) {
+              if (!el) return;
+              try {
+                el._leaflet_pos = point;
+                if (L.Browser && L.Browser.any3d) {
+                  L.DomUtil.setTransform(el, point);
+                } else if (el.style) {
+                  el.style.left = (point ? point.x : 0) + 'px';
+                  el.style.top = (point ? point.y : 0) + 'px';
+                }
+              } catch (err) {
+                // Intercept
+              }
+            };
+
+            L.DomUtil.getPosition = function(el) {
+              if (!el) return (L.Point ? new L.Point(0, 0) : { x: 0, y: 0 });
+              try {
+                return el._leaflet_pos || (L.Point ? new L.Point(0, 0) : { x: 0, y: 0 });
+              } catch (err) {
+                return (L.Point ? new L.Point(0, 0) : { x: 0, y: 0 });
+              }
+            };
+          }
+
+          if (L.PosAnimation && L.PosAnimation.prototype) {
+            var _origRunFrame = L.PosAnimation.prototype._runFrame;
+            L.PosAnimation.prototype._runFrame = function(progress, round) {
+              if (!this._el) return;
+              try {
+                var pos = this._startPos.add(this._offset.multiplyBy(progress));
+                if (round) pos = pos.round();
+                if (this._el) {
+                  this._el._leaflet_pos = pos;
+                  L.DomUtil.setPosition(this._el, pos);
+                }
+                this.fire('step');
+              } catch (err) {
+                // Intercept
+              }
+            };
+
+            var _origStep = L.PosAnimation.prototype._step;
+            if (_origStep) {
+              L.PosAnimation.prototype._step = function(round) {
+                if (!this._el) return;
+                try {
+                  return _origStep.call(this, round);
+                } catch (err) {
+                  // Intercept
+                }
+              };
+            }
+          }
+
+          if (L.Marker && L.Marker.prototype) {
+            var _origMarkerSetPos = L.Marker.prototype._setPos;
+            if (_origMarkerSetPos) {
+              L.Marker.prototype._setPos = function(pos) {
+                if (!this._icon && !this._shadow) return;
+                try {
+                  if (this._icon) this._icon._leaflet_pos = pos;
+                  if (this._shadow) this._shadow._leaflet_pos = pos;
+                  return _origMarkerSetPos.call(this, pos);
+                } catch (err) {
+                  // Intercept
+                }
+              };
+            }
+          }
+
+          if (L.Popup && L.Popup.prototype) {
+            var _origPopupUpdatePos = L.Popup.prototype._updatePosition;
+            if (_origPopupUpdatePos) {
+              L.Popup.prototype._updatePosition = function() {
+                if (!this._container || !this._map) return;
+                try {
+                  return _origPopupUpdatePos.call(this);
+                } catch (err) {
+                  // Intercept
+                }
+              };
+            }
+          }
+
+          if (L.Tooltip && L.Tooltip.prototype) {
+            var _origTooltipUpdatePos = L.Tooltip.prototype._updatePosition;
+            if (_origTooltipUpdatePos) {
+              L.Tooltip.prototype._updatePosition = function() {
+                if (!this._container || !this._map) return;
+                try {
+                  return _origTooltipUpdatePos.call(this);
+                } catch (err) {
+                  // Intercept
+                }
+              };
+            }
+          }
+        }
+
+        patchLeaflet();
+        window.addEventListener('DOMContentLoaded', patchLeaflet);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

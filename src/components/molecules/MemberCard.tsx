@@ -50,22 +50,23 @@ export const MemberCard: React.FC<MemberCardProps> = ({
   };
 
   return (
-    <div className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-all group overflow-hidden">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+    <div className="card-3d p-4 shadow-3d-sm hover:shadow-3d-lg border-white/40 bg-white/60 hover:bg-white/80 group overflow-visible relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-500/5 to-indigo-500/5 pointer-events-none rounded-2xl" />
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-5 relative z-10">
         
         {/* Main Row with Avatar and Info */}
-        <div className="flex items-start gap-3.5 flex-1 min-w-0 w-full">
+        <div className="flex items-start gap-4 flex-1 min-w-0 w-full">
           {/* Avatar Section */}
-          <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 border border-gray-100 group/avatar">
+          <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-white shadow-3d-sm shrink-0 border border-white/60 group/avatar">
             {member.photoURL ? (
               <img 
                 src={member.photoURL} 
                 alt={member.displayName || 'Profil'} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover/avatar:scale-110 transition-transform duration-500"
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs font-black text-blue-600 bg-blue-50 uppercase font-sans">
+              <div className="w-full h-full flex items-center justify-center text-sm font-black text-blue-600 bg-blue-50/50 uppercase tracking-tighter">
                 {getInitials(member.displayName || member.email)}
               </div>
             )}
@@ -77,93 +78,106 @@ export const MemberCard: React.FC<MemberCardProps> = ({
                   e.stopPropagation();
                   onCapturePhoto(member);
                 }}
-                className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-opacity cursor-pointer text-[8px] font-bold"
+                className="absolute inset-0 bg-indigo-900/60 backdrop-blur-sm opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center text-white transition-all duration-300 cursor-pointer"
                 title="Ambil Foto Profil"
               >
-                <Camera size={14} />
-                <span className="text-[7px] uppercase mt-0.5">Kamera</span>
+                <Camera size={18} />
+                <span className="text-[7px] font-black uppercase mt-1 tracking-widest">Kamera</span>
               </button>
             )}
 
             {/* Permanent touch badge for camera if canUpdatePhoto */}
             {canUpdatePhoto && (
-              <div className="absolute bottom-0 right-0 p-0.5 bg-blue-600 text-white rounded-full border border-white shadow-xs">
-                <Camera size={8} />
+              <div className="absolute bottom-1 right-1 p-1 bg-blue-600 text-white rounded-lg border border-white shadow-3d-sm">
+                <Camera size={10} />
               </div>
             )}
           </div>
 
           {/* Member Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap gap-1.5 mb-2">
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
               <Badge 
                 label={getRoleLabel(member.role)} 
                 variant={ADMIN_ROLES.includes(member.role) ? 'orange' : 'blue'} 
                 icon={ADMIN_ROLES.includes(member.role) ? ShieldCheck : undefined}
+                className="scale-90 origin-left"
               />
               <Badge 
                 label={statusConfig.label} 
                 variant={statusConfig.variant} 
                 icon={statusConfig.icon}
+                className="scale-90 origin-left"
               />
-              {member.isCritical && <Badge label="Penting" icon={AlertTriangle} variant="rose" />}
+              {member.isCritical && <Badge label="Penting" icon={AlertTriangle} variant="rose" className="scale-90 origin-left" />}
             </div>
             
-            <h4 className="text-sm font-black text-gray-900 mb-0.5 truncate">{member.displayName || member.email.split('@')[0]}</h4>
-            <p className="text-[10px] font-bold text-gray-400 mb-3 truncate">{member.email}</p>
+            <h4 className="text-[13px] font-black text-slate-900 mb-0.5 truncate uppercase tracking-tight">{member.displayName || member.email.split('@')[0]}</h4>
+            <p className="text-[9px] font-bold text-slate-400 mb-3 truncate uppercase tracking-widest opacity-80">{member.email}</p>
             
             {member.observations && (
-              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-tight mb-2 leading-tight">
-                {member.observations}
-              </p>
+              <div className="p-2 bg-blue-50/50 border border-blue-100/50 rounded-xl mb-3">
+                <p className="text-[10px] font-black text-blue-700 uppercase tracking-tight leading-tight">
+                  {member.observations}
+                </p>
+              </div>
             )}
             
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="flex items-center gap-1">
                 {[1,2,3,4,5].map(s => (
-                  <Star key={s} size={10} className={s <= (member.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'} />
+                  <Star key={s} size={10} className={s <= (member.rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'} />
                 ))}
               </div>
-              <div className="flex items-center gap-1 text-[10px] font-black text-blue-600">
-                <Award size={10} /> {member.points || 0} Pts
+              <div className="flex items-center gap-1.5 text-[9px] font-black text-indigo-600 uppercase tracking-widest">
+                <Award size={10} className="text-indigo-500" /> {member.points || 0} Points
               </div>
             </div>
 
             {member.skills && member.skills.length > 0 && (
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {member.skills.map(s => (
-                  <span key={s} className="text-[9px] font-bold px-2 py-0.5 bg-white border border-gray-100 rounded-lg text-gray-500">#{s}</span>
+                  <span key={s} className="text-[8px] font-black px-2 py-0.5 bg-white/60 border border-white shadow-3d-sm rounded-lg text-slate-600 uppercase tracking-tighter">#{s}</span>
                 ))}
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex sm:flex-col gap-2 w-full sm:w-auto border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0">
+        <div className="flex flex-wrap sm:flex-col gap-2 w-full sm:w-auto border-t sm:border-t-0 border-slate-100/50 pt-4 sm:pt-0 relative z-20">
           {isAdmin && (
             <>
               <button 
-                onClick={() => onEdit(member)} 
-                className="flex-1 sm:flex-none p-3 bg-white text-blue-700 rounded-xl shadow-sm border border-blue-100 hover:bg-blue-50 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(member);
+                }}
+                className="btn-3d flex-1 sm:flex-none p-2.5 bg-white text-indigo-700 rounded-xl shadow-3d-sm border border-indigo-100/50 hover:bg-indigo-50 flex items-center justify-center gap-2 active:translate-y-0.5 transition-all min-w-[80px]"
               >
-                <Edit3 size={16} /> <span className="sm:hidden text-xs font-bold uppercase tracking-wider">Kelola</span>
+                <Edit3 size={16} /> <span className="sm:hidden text-[9px] font-black uppercase tracking-widest">Manage</span>
               </button>
               {onDelete && (member.uid !== currentUserId && member.id !== currentUserId) && (
                 <button 
-                  onClick={() => onDelete(member)} 
-                  className="flex-1 sm:flex-none p-3 bg-red-600 text-white rounded-xl shadow-md border border-red-700 hover:bg-red-700 flex items-center justify-center gap-2 active:scale-95 transition-transform" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(member);
+                  }}
+                  className="btn-3d flex-1 sm:flex-none p-2.5 bg-rose-500 text-white rounded-xl shadow-3d-sm border border-rose-400 hover:bg-rose-600 flex items-center justify-center gap-2 active:translate-y-0.5 transition-all min-w-[80px]" 
                   title="Hapus Warga"
                 >
-                  <UserX size={16} /> <span className="sm:hidden text-xs font-bold uppercase tracking-wider">Hapus</span>
+                  <UserX size={16} /> <span className="sm:hidden text-[9px] font-black uppercase tracking-widest">Remove</span>
                 </button>
               )}
             </>
           )}
           <button 
-            onClick={() => onMessage(member.displayName || member.email, member.phoneNumber)} 
-            className="flex-1 sm:flex-none p-3 bg-green-600 text-white rounded-xl shadow-md border border-green-700 hover:bg-green-700 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMessage(member.displayName || member.email, member.phoneNumber);
+            }} 
+            className="btn-3d flex-1 sm:flex-none p-2.5 bg-emerald-500 text-white rounded-xl shadow-3d-sm border border-emerald-400 hover:bg-emerald-600 flex items-center justify-center gap-2 active:translate-y-0.5 transition-all min-w-[80px]"
           >
-            <MessageCircle size={16} /> <span className="sm:hidden text-xs font-bold uppercase tracking-wider">Chat</span>
+            <MessageCircle size={16} /> <span className="sm:hidden text-[9px] font-black uppercase tracking-widest">Chat</span>
           </button>
         </div>
       </div>

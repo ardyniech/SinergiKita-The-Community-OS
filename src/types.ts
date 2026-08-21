@@ -7,10 +7,12 @@ export interface Tenant {
   ownerId: string;
   createdAt: number;
   enabledModules?: CommunityModule[];
+  unlockedModules?: CommunityModule[];
   moduleOrder?: CommunityModule[];
   dashboardOrder?: string[];
   type?: 'rt-rw' | 'paguyuban' | 'umkm' | 'ojol' | 'petani' | 'other';
   logoUrl?: string;
+  templateButtons?: { id: string; label: string; content: string }[];
 }
 
 export interface AppUser {
@@ -138,7 +140,7 @@ export interface PendingApproval {
 export interface Member {
   id: string;
   name: string;
-  role: 'Admin' | 'Member';
+  role: 'admin' | 'member';
   email: string;
   isApproved: boolean;
   phoneNumber?: string;

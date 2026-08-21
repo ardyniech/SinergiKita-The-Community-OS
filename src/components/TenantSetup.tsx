@@ -107,14 +107,14 @@ export default function TenantSetup() {
 
   if (submitted) {
     return (
-      <div className="bg-white p-3 rounded-2xl shadow-xl border border-gray-100 text-center max-w-md mx-auto mt-10">
-        <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="bg-white p-5 rounded-3xl shadow-xl border border-gray-100 text-center max-w-md mx-auto mt-8">
+        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
           <Send size={32} />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Permintaan Dikirim!</h2>
-        <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-          Pendaftaran komunitas <strong>{name}</strong> sedang dalam peninjauan oleh Master Admin. 
-          Anda akan diberikan akses Admin setelah disetujui.
+        <h2 className="text-xl font-black text-gray-900">Sip, Permintaan Berhasil Dikirim! 🎉</h2>
+        <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
+          Pendaftaran komunitas <strong>{name}</strong> sedang ditinjau oleh Tim Pengurus. 
+          Akses Admin akan otomatis aktif setelah permohonan disetujui. Terima kasih sudah bergabung!
         </p>
       </div>
     );
@@ -122,39 +122,39 @@ export default function TenantSetup() {
 
   if (mode === 'choice') {
     return (
-      <div className="max-w-md mx-auto mt-10">
+      <div className="max-w-md mx-auto mt-6">
         <div className="text-center mb-5">
-          <h2 className="text-xl font-black text-gray-900">Selamat Datang!</h2>
-          <p className="text-xs text-gray-500 mt-1">Bagaimana Anda ingin menggunakan SinergiKita?</p>
+          <h2 className="text-xl font-black text-gray-900">Halo Warga SinergiKita! 👋</h2>
+          <p className="text-xs text-gray-500 mt-1">Pilih langkah awal Anda untuk mulai menggunakan aplikasi ini:</p>
         </div>
         
-        <div className="grid gap-4">
+        <div className="grid gap-3.5">
           <button 
             onClick={() => setMode('join')}
-            className="group bg-white p-3 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:shadow-lg transition-all text-left"
+            className="group bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-left cursor-pointer"
           >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <Users size={24} />
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors shrink-0">
+                <Users size={22} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900">Gabung Komunitas</h3>
-                <p className="text-xs text-gray-500">Masuk sebagai anggota komunitas yang sudah ada.</p>
+                <h3 className="font-bold text-sm text-gray-900">Gabung Komunitas Warga</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Saya warga/anggota yang punya Kode ID Komunitas dari pengurus.</p>
               </div>
             </div>
           </button>
 
           <button 
             onClick={() => setMode('create')}
-            className="group bg-white p-3 rounded-2xl border-2 border-gray-100 hover:border-blue-500 hover:shadow-lg transition-all text-left"
+            className="group bg-white p-4 rounded-2xl border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-left cursor-pointer"
           >
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <Building2 size={24} />
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                <Building2 size={22} />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900">Buat Komunitas Baru</h3>
-                <p className="text-xs text-gray-500">Mulai kelola komunitas baru untuk warga Anda.</p>
+                <h3 className="font-bold text-sm text-gray-900">Daftarkan Komunitas Baru</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Saya pengurus RT/RW atau Ketua yang ingin daftarkan wilayah baru.</p>
               </div>
             </div>
           </button>

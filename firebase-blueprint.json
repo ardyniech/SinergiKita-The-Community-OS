@@ -126,24 +126,38 @@
       },
       "required": ["tenantId", "name", "price"]
     },
-    "KoperasiRecord": {
-      "title": "KoperasiRecord",
-      "description": "A record of deposit or loan in the community cooperative.",
+    "KoperasiDeposit": {
+      "title": "KoperasiDeposit",
+      "description": "A record of deposit or withdrawal in the cooperative.",
       "type": "object",
       "properties": {
         "tenantId": { "type": "string" },
         "uid": { "type": "string" },
         "userName": { "type": "string" },
-        "type": { "type": "string", "enum": ["deposit", "loan", "repayment"] },
+        "type": { "type": "string", "enum": ["deposit", "withdrawal"] },
         "amount": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "completed", "rejected"] },
-        "timestamp": { "type": "object" },
-        "note": { "type": "string" }
+        "status": { "type": "string" },
+        "timestamp": { "type": "object" }
       },
-      "required": ["tenantId", "uid", "type", "amount", "status"]
+      "required": ["tenantId", "uid", "type", "amount"]
     },
-    "Project": {
-      "title": "Project",
+    "KoperasiLoan": {
+      "title": "KoperasiLoan",
+      "description": "A record of loan application and status.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "uid": { "type": "string" },
+        "borrowerName": { "type": "string" },
+        "amount": { "type": "number" },
+        "tenorMonths": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["tenantId", "uid", "amount", "status"]
+    },
+    "FundingProject": {
+      "title": "FundingProject",
       "description": "Crowdfunding project for the community.",
       "type": "object",
       "properties": {
@@ -152,14 +166,96 @@
         "ownerName": { "type": "string" },
         "title": { "type": "string" },
         "target": { "type": "number" },
-        "current": { "type": "number" },
-        "backers": { "type": "number" },
-        "category": { "type": "string" },
-        "status": { "type": "string", "enum": ["active", "funded", "closed"] },
-        "description": { "type": "string" },
-        "createdAt": { "type": "object" }
+        "collectedAmount": { "type": "number" },
+        "status": { "type": "string" }
       },
       "required": ["tenantId", "title", "target", "status"]
+    },
+    "FundingContribution": {
+      "title": "FundingContribution",
+      "description": "A member contribution to a funding project.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "projectId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "amount": { "type": "number" },
+        "timestamp": { "type": "object" }
+      },
+      "required": ["tenantId", "projectId", "userId", "amount"]
+    },
+    "MarketplaceProduct": {
+      "title": "MarketplaceProduct",
+      "description": "Product for sale in the marketplace.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "title": { "type": "string" },
+        "price": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["tenantId", "sellerId", "title", "price"]
+    },
+    "MarketplaceOrder": {
+      "title": "MarketplaceOrder",
+      "description": "An order in the marketplace.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "productId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["tenantId", "productId", "buyerId", "amount"]
+    },
+    "SocialPost": {
+      "title": "SocialPost",
+      "description": "Community social feed post.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "content": { "type": "string" },
+        "likes": { "type": "array" }
+      },
+      "required": ["tenantId", "authorId", "content"]
+    },
+    "POSProduct": {
+      "title": "POSProduct",
+      "description": "Product for the POS system.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "stock": { "type": "number" }
+      },
+      "required": ["tenantId", "name", "price"]
+    },
+    "POSTransaction": {
+      "title": "POSTransaction",
+      "description": "POS transaction record.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "timestamp": { "type": "object" }
+      },
+      "required": ["tenantId", "totalAmount"]
+    },
+    "LearningLesson": {
+      "title": "LearningLesson",
+      "description": "Educational material.",
+      "type": "object",
+      "properties": {
+        "tenantId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" }
+      },
+      "required": ["tenantId", "title", "content"]
     },
     "LearningContent": {
       "title": "LearningContent",
@@ -264,20 +360,28 @@
       "schema": "SocialAlert",
       "description": "Social welfare info."
     },
-    "products": {
-      "schema": "Product",
+    "marketplace_products": {
+      "schema": "MarketplaceProduct",
       "description": "Shop products."
     },
-    "koperasi": {
-      "schema": "KoperasiRecord",
+    "marketplace_orders": {
+      "schema": "MarketplaceOrder",
+      "description": "Shop orders."
+    },
+    "koperasi_loans": {
+      "schema": "KoperasiLoan",
       "description": "Cooperative transactions."
     },
-    "projects": {
-      "schema": "Project",
+    "funding_projects": {
+      "schema": "FundingProject",
       "description": "Crowdfunding projects."
     },
-    "learning": {
-      "schema": "LearningContent",
+    "funding_contributions": {
+      "schema": "FundingContribution",
+      "description": "Contributions to projects."
+    },
+    "learning_lessons": {
+      "schema": "LearningLesson",
       "description": "Educational materials and guides."
     },
     "announcements": {
@@ -295,6 +399,18 @@
     "active_locations": {
       "schema": "ActiveLocation",
       "description": "Real-time active member GPS locations."
+    },
+    "social_posts": {
+      "schema": "SocialPost",
+      "description": "Social feed posts."
+    },
+    "pos_products": {
+      "schema": "POSProduct",
+      "description": "POS inventory."
+    },
+    "pos_transactions": {
+      "schema": "POSTransaction",
+      "description": "POS sales records."
     }
   }
 }

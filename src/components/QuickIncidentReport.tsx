@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Berisi form pelaporan warga cepat dengan penanganan rekam suara (PTT), integrasi geo-location, dan audit trail dalam satu kesatuan responsif.
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';

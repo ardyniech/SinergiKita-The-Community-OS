@@ -61,10 +61,15 @@ export default function FinanceModule() {
 
   const addRecurring = async () => {
     if (!newRecurring.description || !newRecurring.amount || !profile?.tenantId) return;
+    const amountNum = Number(newRecurring.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      showToast('Nominal transaksi rutin harus valid dan lebih dari 0!');
+      return;
+    }
     setSubmitting(true);
     try {
       await addDoc(collection(db, 'recurring'), {
-        tenantId: profile.tenantId, description: newRecurring.description, amount: Number(newRecurring.amount),
+        tenantId: profile.tenantId, description: newRecurring.description, amount: amountNum,
         status: 'active', nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0], createdAt: serverTimestamp()
       });
       showToast('Transaksi rutin berhasil ditambahkan.');
@@ -80,7 +85,7 @@ export default function FinanceModule() {
 
   if (loading) {
     return (
-      <div className="p-4 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-3xl border border-gray-100 shadow-sm">
+      <div className="p-4 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm">
         <Loader2 size={24} className="animate-spin text-blue-500" />
         <span>Memuat modul keuangan...</span>
       </div>
@@ -89,7 +94,7 @@ export default function FinanceModule() {
 
   if (error) {
     return (
-      <div className="p-4 text-center text-xs text-red-500 bg-white rounded-3xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
+      <div className="p-4 text-center text-xs text-red-500 bg-white rounded-xl border border-red-100 flex flex-col items-center gap-3 shadow-sm">
         <p className="font-bold">{error}</p>
         <button 
           onClick={() => { setLoading(true); setError(null); }} 
@@ -100,41 +105,152 @@ export default function FinanceModule() {
       </div>
     );
   }
+  const isTreasurer = profile?.role === 'bendahara';
   const isThresholdBreached = (budget.spent / budget.total) * 100 >= budget.threshold;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* 1. Official Core Transaction Ledger (Ledger, Approvals, Reconciliation, Dues Tracking) */}
       <TransactionLedger />
 
       {/* 2. Operational Budget & Recurring Expenses Widget */}
-      <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-        {isThresholdBreached && <div className="mb-3 p-2 bg-red-50 border border-red-100 rounded-lg flex items-center gap-2 animate-pulse"><AlertTriangle className="text-red-600" size={16} /><p className="text-[10px] font-bold text-red-700 uppercase">KRITIS: Melampaui limit {budget.threshold}%!</p></div>}
+      <div className="liquid-glass p-6 rounded-[32px] border-white/60 shadow-3d-lg relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
         
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-1">
-            <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Anggaran Operasional</h2>
-            <button onClick={() => { setTempBudget({ total: budget.total.toString(), threshold: budget.threshold.toString() }); setIsEditingBudget(!isEditingBudget); }} className="text-gray-400 hover:text-blue-600 p-1"><SettingsIcon size={14} /></button>
+        {isThresholdBreached && (
+          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 animate-pulse">
+            <div className="w-10 h-10 bg-rose-500 rounded-xl flex items-center justify-center text-white shadow-3d-sm">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <p className="text-[11px] font-black text-rose-600 uppercase tracking-[0.1em] leading-none mb-1">Critical Threshold Breached</p>
+              <p className="text-[9px] font-bold text-rose-500/80 uppercase tracking-tight">Current consumption exceeds {budget.threshold}% of total allocation.</p>
+            </div>
           </div>
-          {isEditingBudget && <BudgetEditor tempBudget={tempBudget} setTempBudget={setTempBudget} onUpdate={handleUpdateBudget} />}
-          <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden mb-2 shadow-inner"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, (budget.spent / budget.total) * 100)}%` }} className={`h-full rounded-full ${isThresholdBreached ? 'bg-red-500' : 'bg-blue-500'}`} /></div>
-          <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5"><span>Rp {budget.spent.toLocaleString()}</span><span className={isThresholdBreached ? 'text-red-600' : 'text-gray-900'}>{Math.round((budget.spent / budget.total) * 100)}% / {budget.threshold}%</span><span>Limit: Rp {budget.total.toLocaleString()}</span></div>
+        )}
+        
+        <div className="mb-8 relative z-10">
+          <div className="flex justify-between items-center mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-3d-sm border border-indigo-400">
+                <SettingsIcon size={20} />
+              </div>
+              <div>
+                <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-tight leading-tight">Operational Budget</h2>
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest opacity-70">Resource Allocation Status</p>
+              </div>
+            </div>
+            {isTreasurer && (
+              <button 
+                onClick={() => { setTempBudget({ total: budget.total.toString(), threshold: budget.threshold.toString() }); setIsEditingBudget(!isEditingBudget); }} 
+                className="w-10 h-10 bg-white/60 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 transition-all border border-white flex items-center justify-center shadow-3d-sm active:translate-y-0.5"
+              >
+                <SettingsIcon size={18} />
+              </button>
+            )}
+          </div>
+
+          {isEditingBudget && isTreasurer && <BudgetEditor tempBudget={tempBudget} setTempBudget={setTempBudget} onUpdate={handleUpdateBudget} />}
+          
+          <div className="relative h-4 w-full bg-slate-100 rounded-full overflow-hidden mb-4 shadow-inner border border-slate-200/50">
+            <motion.div 
+              initial={{ width: 0 }} 
+              animate={{ width: `${Math.min(100, (budget.spent / budget.total) * 100)}%` }} 
+              className={`h-full rounded-full transition-all duration-1000 ${isThresholdBreached ? 'bg-gradient-to-r from-rose-500 to-rose-600' : 'bg-gradient-to-r from-indigo-500 to-blue-600'} shadow-[0_0_15px_rgba(79,70,229,0.3)]`} 
+            />
+          </div>
+
+          <div className="flex justify-between items-end">
+            <div className="space-y-1">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Utilized Capital</p>
+              <p className="text-xl font-black text-slate-900 tracking-tighter">Rp {budget.spent.toLocaleString()}</p>
+            </div>
+            <div className="text-center bg-white/60 px-4 py-2 rounded-2xl border border-white shadow-3d-sm">
+              <span className={`text-sm font-black tracking-tighter ${isThresholdBreached ? 'text-rose-600' : 'text-indigo-600'}`}>
+                {Math.round((budget.spent / budget.total) * 100)}%
+              </span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-2">/ {budget.threshold}% cap</span>
+            </div>
+            <div className="text-right space-y-1">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Limit</p>
+              <p className="text-xl font-black text-slate-900 tracking-tighter">Rp {budget.total.toLocaleString()}</p>
+            </div>
+          </div>
         </div>
 
-        <div className="mb-2 pt-4 border-t border-gray-50">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Transaksi Rutin</h2>
-            <button onClick={() => setIsAddingRecurring(!isAddingRecurring)} className="w-7 h-7 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-100 transition-colors"><Plus size={14} /></button>
+        <div className="pt-8 border-t border-white/40 relative z-10">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-3d-sm border border-emerald-400">
+                <Plus size={22} />
+              </div>
+              <div>
+                <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-tight leading-tight">Recurring Ledger</h2>
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest opacity-70">Scheduled Community Expenses</p>
+              </div>
+            </div>
+            {isTreasurer && (
+              <button 
+                onClick={() => setIsAddingRecurring(!isAddingRecurring)} 
+                className="btn-3d w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-3d-sm border border-indigo-400 transition-all active:translate-y-0.5"
+              >
+                <Plus size={20} />
+              </button>
+            )}
           </div>
-          {isAddingRecurring && (
-            <div className="bg-gray-50 p-3 rounded-xl mb-3 space-y-2 border border-gray-100">
-              <input type="text" placeholder="Deskripsi" className="w-full text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.description} onChange={e => setNewRecurring(p => ({ ...p, description: e.target.value }))} />
-              <div className="flex gap-2"><input type="number" inputMode="numeric" placeholder="Rp" className="flex-1 text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none" value={newRecurring.amount} onChange={e => setNewRecurring(p => ({ ...p, amount: e.target.value }))} /><button onClick={addRecurring} disabled={submitting} className="bg-blue-600 text-white px-2 rounded-lg font-black text-[9px] uppercase tracking-widest">{submitting ? <Loader2 size={12} className="animate-spin" /> : 'Simpan'}</button></div>
+
+          {isAddingRecurring && isTreasurer && (
+            <div className="liquid-glass p-5 rounded-2xl mb-6 space-y-4 border-white/60 shadow-3d-sm bg-white/40 animate-in fade-in zoom-in-95 duration-200">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Transaction Description</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. WiFi Maintenance, Trash Collection" 
+                  className="w-full text-[11px] font-black p-3.5 bg-white border border-slate-200/50 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 shadow-inner" 
+                  value={newRecurring.description} 
+                  onChange={e => setNewRecurring(p => ({ ...p, description: e.target.value }))} 
+                />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1 space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Amount (Rp)</label>
+                  <input 
+                    type="number" 
+                    inputMode="numeric" 
+                    placeholder="0" 
+                    className="w-full text-[11px] font-black p-3.5 bg-white border border-slate-200/50 rounded-xl outline-none focus:ring-4 focus:ring-indigo-500/10 shadow-inner" 
+                    value={newRecurring.amount} 
+                    onChange={e => setNewRecurring(p => ({ ...p, amount: e.target.value }))} 
+                  />
+                </div>
+                <button 
+                  onClick={addRecurring} 
+                  disabled={submitting} 
+                  className="btn-3d mt-6 bg-indigo-600 text-white px-8 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-3d-sm border border-indigo-400 transition-all active:translate-y-0.5"
+                >
+                  {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Execute'}
+                </button>
+              </div>
             </div>
           )}
-          <div className="space-y-2">
-            {recurring.length === 0 && <p className="text-center text-[9px] text-gray-400 py-3 italic">Kosong.</p>}
-            {recurring.map(item => <RecurringTransactionItem key={item.id} item={item} onToggle={async (id, s) => { await updateDoc(doc(db, 'recurring', id), { status: s === 'active' ? 'paused' : 'active' }); }} />)}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recurring.length === 0 && (
+              <div className="col-span-full py-12 text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic opacity-50">Zero recurring protocols established.</p>
+              </div>
+            )}
+            {recurring.map(item => (
+              <RecurringTransactionItem 
+                key={item.id} 
+                item={item} 
+                isTreasurer={isTreasurer}
+                onToggle={async (id, s) => { 
+                  if (!isTreasurer) return;
+                  await updateDoc(doc(db, 'recurring', id), { status: s === 'active' ? 'paused' : 'active' }); 
+                }} 
+              />
+            ))}
           </div>
         </div>
       </div>

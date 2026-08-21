@@ -25,6 +25,9 @@ apiRouter.get("/health", (req, res) => {
 });
 
 apiRouter.get("/recommendations", async (req: AuthRequest, res) => {
+  if (!req.user && !req.headers.authorization) {
+    return res.status(401).json({ error: "Otentikasi diperlukan" });
+  }
   try {
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,

@@ -17,7 +17,7 @@ export const Badge = ({ icon: Icon, label, variant = 'blue', className = '' }: B
   };
 
   return (
-    <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border tech-mono font-bold text-[8px] uppercase tracking-wider leading-none ${variants[variant]} ${className}`}>
+    <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border tech-mono font-bold text-[8px] uppercase tracking-wider leading-none shadow-3d-sm ${variants[variant]} ${className}`}>
       {Icon && <Icon size={10} className="shrink-0" />}
       {label}
     </div>

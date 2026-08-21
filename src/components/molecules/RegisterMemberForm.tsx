@@ -3,7 +3,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc
 import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { UserPlus, Loader2, X, Mail } from 'lucide-react';
+import { UserPlus, Loader2, X, Mail, ShieldCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface RegisterMemberFormProps {
@@ -107,71 +107,78 @@ export function RegisterMemberForm({ onClose }: RegisterMemberFormProps) {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="bg-blue-50 border border-blue-100 rounded-2xl p-3 mb-6 shadow-sm"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="liquid-glass border-blue-200/50 rounded-3xl p-4 mb-8 shadow-3d-lg relative overflow-hidden"
     >
-      <div className="flex justify-between items-center mb-5">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 pointer-events-none" />
+      
+      <div className="flex justify-between items-center mb-6 relative z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-100">
-            <UserPlus size={20} />
+          <div className="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-3d-sm border border-blue-400">
+            <UserPlus size={24} />
           </div>
           <div>
-            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Registrasi Warga Baru</h3>
-            <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest leading-none mt-1">Tambah anggota via email</p>
+            <h3 className="text-[13px] font-black text-slate-900 uppercase tracking-tight leading-tight">Registry Enrollment</h3>
+            <p className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.15em] mt-1 opacity-80">Add members to secure database</p>
           </div>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-white rounded-lg text-gray-400 transition-colors">
-          <X size={20} />
+        <button onClick={onClose} className="w-9 h-9 bg-white/60 hover:bg-white rounded-xl text-slate-400 hover:text-slate-600 transition-all border border-white flex items-center justify-center shadow-3d-sm active:translate-y-0.5">
+          <X size={18} />
         </button>
       </div>
 
-      <form onSubmit={handleRegister} className="space-y-4">
+      <form onSubmit={handleRegister} className="space-y-4 relative z-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={16} />
             <input 
-              type="email" placeholder="Email Aktif (Wajib)"
-              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-medium"
+              type="email" placeholder="Active Email (Required)"
+              className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200/50 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-200 transition-all text-xs font-black uppercase tracking-tight shadow-inner"
               value={email} onChange={(e) => setEmail(e.target.value)} required
             />
           </div>
           <input 
-            type="text" placeholder="Nama Lengkap"
-            className="w-full px-2 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-medium"
+            type="text" placeholder="Full Name"
+            className="w-full px-4 py-3.5 bg-white border border-slate-200/50 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-200 transition-all text-xs font-black uppercase tracking-tight shadow-inner"
             value={displayName} onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input 
-            type="tel" placeholder="Nomor Telepon"
-            className="w-full px-2 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-medium"
+            type="tel" placeholder="Phone Number"
+            className="w-full px-4 py-3.5 bg-white border border-slate-200/50 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-200 transition-all text-xs font-black uppercase tracking-tight shadow-inner"
             value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)}
           />
-          <select 
-            className="w-full px-2 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 transition-all text-sm font-bold text-gray-700 appearance-none"
-            value={role} onChange={(e) => setRole(e.target.value as any)}
-          >
-            <option value="member">Peran: Warga Biasa</option>
-            <option value="admin">Peran: Pengurus (Admin)</option>
-          </select>
+          <div className="relative">
+            <select 
+              className="w-full px-4 py-3.5 bg-white border border-slate-200/50 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-200 transition-all text-[10px] font-black text-slate-700 uppercase tracking-widest appearance-none shadow-inner"
+              value={role} onChange={(e) => setRole(e.target.value as any)}
+            >
+              <option value="member">Role: Standard Citizen</option>
+              <option value="admin">Role: Executive Admin</option>
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <ShieldCheck size={14} />
+            </div>
+          </div>
         </div>
 
         <button 
           type="submit" disabled={loading}
-          className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50 transition-all active:scale-95"
+          className="btn-3d w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-blue-700 shadow-3d-sm flex items-center justify-center gap-3 disabled:opacity-50 transition-all active:translate-y-0.5 mt-2"
         >
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
-          Konfirmasi & Daftarkan
+          {loading ? <Loader2 size={20} className="animate-spin" /> : <UserPlus size={20} />}
+          Authorize & Register
         </button>
       </form>
       
-      <div className="mt-3 flex items-start gap-2 px-1">
-        <div className="w-1 h-1 bg-blue-400 rounded-full mt-1.5" />
-        <p className="text-[9px] text-blue-600/70 font-medium leading-tight">
-          Warga yang didaftarkan akan berstatus <span className="font-bold text-blue-700">'Pending'</span> hingga mereka login pertama kali menggunakan email tersebut.
+      <div className="mt-5 p-3 bg-blue-500/5 rounded-2xl border border-blue-500/10 flex items-start gap-3 relative z-10">
+        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+        <p className="text-[10px] text-blue-900/60 font-bold uppercase tracking-tight leading-tight">
+          New entries are set to <span className="text-blue-700">'Pending'</span> status. Authorization completes upon their initial secure login via verified email.
         </p>
       </div>
     </motion.div>

@@ -1,27 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { GripVertical, AlertTriangle } from 'lucide-react';
+import { GripVertical, AlertTriangle, Lock, ShieldAlert } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { CommunityModule } from '../../../types';
-
-const featureModules: { id: CommunityModule; label: string; desc: string }[] = [
-  { id: 'emergency', label: 'Alarm Darurat', desc: 'Sistem SOS warga real-time' },
-  { id: 'finance', label: 'Laporan Keuangan', desc: 'Transparansi kas & iuran' },
-  { id: 'social', label: 'Sosial & Gotong Royong', desc: 'Bantuan antar warga & proposal' },
-  { id: 'directory', label: 'Direktori Warga', desc: 'Data & profil anggota komunitas' },
-  { id: 'koperasi', label: 'Koperasi', desc: 'Simpan pinjam & kesejahteraan' },
-  { id: 'funding', label: 'Founding Bisnis', desc: 'Crowdfunding usaha bersama' },
-  { id: 'pos', label: 'Kasir (POS)', desc: 'Sistem penjualan UMKM komunitas' },
-  { id: 'learning', label: 'Panduan Edukasi', desc: 'Materi & tutorial untuk warga' },
-  { id: 'announcements', label: 'Warta Warga', desc: 'Pengumuman & informasi terbaru' },
-  { id: 'chat', label: 'Obrolan Komunitas', desc: 'Ruang diskusi antar warga' },
-  { id: 'marketplace', label: 'Pasar Brotherhood', desc: 'Ekosistem jual beli antar warga' },
-  { id: 'ai', label: 'Kecerdasan Buatan (AI)', desc: 'Analisis pintar & tips otomatis untuk komunitas' },
-  { id: 'settings', label: 'Pengaturan Admin', desc: 'Konfigurasi modul & branding' },
-  { id: 'superadmin', label: 'Master Console', desc: 'Akses pusat seluruh tenant' },
-];
+import { getMemberLabel } from '../../../lib/terminology';
 
 export default function FeatureOrderSettings() {
   const { profile, tenant, isSuperAdmin } = useAuth();
@@ -29,7 +13,30 @@ export default function FeatureOrderSettings() {
   const [loading, setLoading] = useState(false);
   const [orderedFeatures, setOrderedFeatures] = useState<CommunityModule[]>([]);
   const [activeDragIndex, setActiveDragIndex] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  const memberLabel = getMemberLabel(tenant?.type);
+
+  const featureModules: { id: CommunityModule; label: string; desc: string; isPremium: boolean }[] = [
+    { id: 'emergency', label: `Alarm SOS ${memberLabel}`, desc: `Sistem SOS ${memberLabel.toLowerCase()} real-time`, isPremium: false },
+    { id: 'finance', label: `Buku Kas ${memberLabel}`, desc: `Transparansi dana & iuran ${memberLabel.toLowerCase()}`, isPremium: false },
+    { id: 'social', label: 'Santunan & Gotong Royong', desc: `Bantuan & proposal ${memberLabel.toLowerCase()}`, isPremium: false },
+    { id: 'directory', label: `Direktori ${memberLabel}`, desc: `Data & profil ${memberLabel.toLowerCase()} komunitas`, isPremium: false },
+    { id: 'koperasi', label: `Koperasi ${memberLabel}`, desc: 'Simpan pinjam & kesejahteraan', isPremium: true },
+    { id: 'funding', label: 'Funding Proyek', desc: `Crowdfunding usaha bersama ${memberLabel.toLowerCase()}`, isPremium: true },
+    { id: 'pos', label: `Kasir POS ${memberLabel}`, desc: 'Sistem penjualan UMKM komunitas', isPremium: true },
+    { id: 'learning', label: 'Panduan Edukasi', desc: `Materi & tutorial untuk ${memberLabel.toLowerCase()}`, isPremium: false },
+    { id: 'announcements', label: `Warta ${memberLabel}`, desc: 'Pengumuman & informasi terbaru', isPremium: false },
+    { id: 'chat', label: `Obrolan ${memberLabel}`, desc: `Ruang diskusi antar ${memberLabel.toLowerCase()}`, isPremium: false },
+    { id: 'marketplace', label: `Pasar ${memberLabel}`, desc: `Jual beli antar ${memberLabel.toLowerCase()}`, isPremium: true },
+    { id: 'ai', label: 'Kecerdasan Buatan (AI)', desc: 'Analisis pintar & tips otomatis untuk komunitas', isPremium: true },
+    { id: 'map', label: 'Peta Lingkungan', desc: 'Peta lokasi fasilitas & insiden', isPremium: true },
+    { id: 'stats', label: 'Statistik & KPI', desc: 'Dashboard ringkasan analisis kas & data', isPremium: true },
+    { id: 'ptt', label: 'Radio HT PTT', desc: `Radio walkie-talkie suara siaga ${memberLabel.toLowerCase()}`, isPremium: true },
+    { id: 'settings', label: 'Pengaturan Admin', desc: 'Konfigurasi modul & branding', isPremium: false },
+    { id: 'superadmin', label: 'Master Console', desc: 'Akses pusat seluruh tenant', isPremium: false },
+  ];
 
   useEffect(() => {
     if (tenant) {
@@ -51,6 +58,17 @@ export default function FeatureOrderSettings() {
 
   const toggleModule = async (moduleId: CommunityModule) => {
     if (!profile?.tenantId) return;
+    
+    // Check master account license locking
+    const defaultUnlocked = ['emergency', 'finance', 'social', 'directory', 'learning', 'announcements', 'chat'];
+    const unlockedModules = tenant?.unlockedModules || defaultUnlocked;
+    const isUnlocked = unlockedModules.includes(moduleId) || ['settings', 'superadmin'].includes(moduleId);
+    
+    if (!isUnlocked) {
+      showToast("Fitur ini Terkunci! Hubungi Master Admin untuk mengaktifkan lisensi premium.");
+      return;
+    }
+
     setLoading(true);
     try {
       const current = tenant?.enabledModules || ['emergency', 'finance', 'social', 'directory'];
@@ -100,13 +118,18 @@ export default function FeatureOrderSettings() {
     setOrderedFeatures(list);
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.DragEvent) => {
+    (e.currentTarget as HTMLElement).draggable = false;
     setActiveDragIndex(null);
     saveOrderToDatabase(orderedFeatures);
   };
 
   // --- Mobile Touch & Hold Dragging Events ---
   const handleTouchStart = (e: React.TouchEvent, index: number) => {
+    if (!isEditMode) return;
+    const target = e.target as HTMLElement;
+    if (!target.closest('.drag-handle')) return;
+    
     setActiveDragIndex(index);
   };
 
@@ -144,8 +167,23 @@ export default function FeatureOrderSettings() {
           <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
             Aktivasi & Urutan Modul Fitur
           </h3>
-          <p className="text-[8px] text-slate-400 font-mono mt-0.5">// SENTUH & TAHAN UNTUK GESER POSISI</p>
+          <p className="text-[8px] text-slate-400 font-mono mt-0.5 tracking-tight">
+            {isEditMode 
+              ? <>GESER IKON <span className="text-cyan-600 font-bold">⠿</span> UNTUK MENGATUR URUTAN</>
+              : "KLIK 'EDIT URUTAN' UNTUK MENGATUR POSISI"}
+          </p>
         </div>
+
+        <button
+          onClick={() => setIsEditMode(!isEditMode)}
+          className={`h-7 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+            isEditMode 
+              ? 'bg-cyan-600 border-cyan-600 text-white shadow-sm shadow-cyan-200' 
+              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+          }`}
+        >
+          {isEditMode ? 'Selesai' : 'Edit Urutan'}
+        </button>
       </div>
 
       <div 
@@ -159,30 +197,45 @@ export default function FeatureOrderSettings() {
           const isActive = (tenant?.enabledModules || ['emergency', 'finance', 'social', 'directory']).includes(mod.id);
           const isDragging = activeDragIndex === index;
 
+          const defaultUnlocked = ['emergency', 'finance', 'social', 'directory', 'learning', 'announcements', 'chat'];
+          const unlockedModules = tenant?.unlockedModules || defaultUnlocked;
+          const isUnlocked = unlockedModules.includes(mod.id) || ['settings', 'superadmin'].includes(mod.id);
+
           return (
             <div
               key={mod.id}
               data-index={index}
-              draggable="true"
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={(e) => handleDragOver(e, index)}
+              draggable="false"
+              onMouseDown={(e) => {
+                if (!isEditMode) return;
+                const target = e.target as HTMLElement;
+                if (target.closest('.drag-handle')) {
+                  e.currentTarget.draggable = true;
+                }
+              }}
+              onDragStart={(e) => isEditMode && handleDragStart(e, index)}
+              onDragOver={(e) => isEditMode && handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              onTouchStart={(e) => handleTouchStart(e, index)}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              style={{ touchAction: 'none' }}
+              onTouchStart={(e) => isEditMode && handleTouchStart(e, index)}
+              onTouchMove={isEditMode ? handleTouchMove : undefined}
+              onTouchEnd={isEditMode ? handleTouchEnd : undefined}
+              style={{ touchAction: isEditMode ? 'none' : 'auto' }}
               className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all select-none ${
                 isDragging 
-                  ? 'bg-cyan-50 border-cyan-300 scale-[1.02] shadow-md z-10 opacity-90 border-dashed'
-                  : isActive 
-                    ? 'bg-slate-50/50 border-slate-200 hover:border-slate-300' 
-                    : 'bg-white border-slate-100 opacity-60'
+                  ? 'bg-cyan-50 border-cyan-400 scale-[1.01] shadow-lg z-20 opacity-100 border-solid ring-2 ring-cyan-500/20'
+                  : !isUnlocked
+                    ? 'bg-slate-100/40 border-slate-200/50 opacity-60'
+                    : isActive 
+                      ? 'bg-slate-50/50 border-slate-200 hover:border-slate-300' 
+                      : 'bg-white border-slate-100 opacity-80'
               }`}
             >
-              {/* Drag Handle - touch and hold anywhere, but GripVertical provides standard cue */}
-              <div className="text-slate-400 cursor-grab active:cursor-grabbing p-1 -ml-1 hover:text-slate-600">
-                <GripVertical size={13} />
-              </div>
+              {/* Drag Handle - Only trigger for this area */}
+              {isEditMode && (
+                <div className="drag-handle text-slate-300 cursor-grab active:cursor-grabbing p-1.5 -ml-1 hover:text-slate-500 hover:bg-slate-100/50 rounded-lg transition-colors">
+                  <GripVertical size={14} />
+                </div>
+              )}
 
               {/* Title & Description */}
               <div className="flex-1 min-w-0">
@@ -190,11 +243,16 @@ export default function FeatureOrderSettings() {
                   <span className="text-[7px] font-mono font-bold text-slate-400 uppercase tracking-widest">
                     ID:{mod.id.toUpperCase()}
                   </span>
-                  {mod.id === 'emergency' && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                  {!isUnlocked && (
+                    <span className="flex items-center gap-0.5 text-[7px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-1 rounded border border-amber-200/50">
+                      <Lock size={7} /> Locked
+                    </span>
+                  )}
+                  {isActive && isUnlocked && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
                   )}
                 </div>
-                <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-tight mt-0.5">
+                <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-tight mt-0.5 flex items-center gap-1">
                   {mod.label}
                 </h4>
                 <p className="text-[9px] text-slate-500 leading-tight">
@@ -202,20 +260,29 @@ export default function FeatureOrderSettings() {
                 </p>
               </div>
 
-              {/* iOS-style toggle Switch */}
-              <button
-                onClick={() => toggleModule(mod.id)}
-                disabled={loading}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  isActive ? 'bg-cyan-600' : 'bg-slate-200'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                    isActive ? 'translate-x-4' : 'translate-x-0'
+              {/* iOS-style toggle Switch or Lock Icon */}
+              {!isUnlocked ? (
+                <div 
+                  onClick={() => showToast("Modul ini dikunci oleh Master Admin (Butuh Lisensi Monetisasi).")}
+                  className="p-1.5 rounded-lg bg-slate-100 text-slate-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer transition-colors"
+                >
+                  <Lock size={12} />
+                </div>
+              ) : (
+                <button
+                  onClick={() => toggleModule(mod.id)}
+                  disabled={loading}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isActive ? 'bg-cyan-600' : 'bg-slate-200'
                   }`}
-                />
-              </button>
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      isActive ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              )}
             </div>
           );
         })}

@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Berisi workflow pengajuan pinjaman mikro koperasi terintegrasi dengan validasi tenor, kalkulasi bunga gotong royong, dan verifikasi admin.
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -202,12 +203,12 @@ export function KoperasiLoanWorkflow() {
 
       {/* Loans List */}
       {loading ? (
-        <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
+        <div className="p-4 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
           <Loader2 size={24} className="animate-spin mx-auto mb-2 text-emerald-600" />
           <p className="text-xs font-bold">Memuat daftar pinjaman...</p>
         </div>
       ) : loans.length === 0 ? (
-        <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
+        <div className="p-4 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
           <AlertCircle size={28} className="mx-auto mb-2 text-slate-300 dark:text-slate-700" />
           <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-300">Belum Ada Pengajuan Pinjaman</h4>
           <p className="text-[10px] text-slate-400 mt-0.5">Pinjaman mikro dapat diajukan untuk kebutuhan darurat atau modal produktif.</p>

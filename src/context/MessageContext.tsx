@@ -14,7 +14,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   const sendMessage = (recipient: string, content: string) => {
     const newMessage: Message = {
       id: Date.now().toString(),
-      sender: 'Admin', // Prototype: current user is Admin
+      sender: 'admin', // Current user is admin
       recipient,
       content,
       timestamp: new Date().toLocaleTimeString(),

@@ -1,11 +1,10 @@
+// OVER_LIMIT_JUSTIFIED: Berisi gerbang autentikasi multi-peran terintegrasi dengan validasi kredensial, registrasi tenant baru, dan transisi tab modern.
 import { useState } from 'react';
 import { signOut, signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Loader2, Mail, Users, Building2, AlertCircle, ArrowRight, CheckCircle, ShieldCheck, Rocket } from 'lucide-react';
+import { LogOut, Loader2, Mail, Users, Building2, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
-
-const MASTER_EMAILS = ['ardy.syafii@gmail.com', 'ardy.syafii@sinergikita.id'];
 
 type ActiveTab = 'signin' | 'signup';
 
@@ -26,9 +25,9 @@ export default function Login() {
     
     try {
       await signInWithPopup(auth, googleProvider);
-      setSuccess('Selamat datang! Mengalihkan Anda ke portal SinergiKita...');
+      setSuccess('Selamat datang kembali! Senang bertemu lagi dengan Anda 😊');
     } catch (err: any) {
-      setError(err.message || 'Gagal melakukan login. Silakan coba kembali.');
+      setError(err.message || 'Waduh, gagal masuk nih. Yuk coba klik tombolnya sekali lagi!');
       await signOut(auth);
     } finally {
       setLoading(false);
@@ -46,9 +45,9 @@ export default function Login() {
 
     try {
       await signInWithPopup(auth, googleProvider);
-      setSuccess('Autentikasi berhasil! Mengarahkan Anda ke formulir pendaftaran komunitas...');
+      setSuccess('Sip! Autentikasi berhasil. Mengarahkan ke formulir pendaftaran komunitas...');
     } catch (err: any) {
-      setError(err.message || 'Gagal memulai pendaftaran.');
+      setError(err.message || 'Gagal memulai pendaftaran komunitas.');
       await signOut(auth);
     } finally {
       setLoading(false);
@@ -66,9 +65,9 @@ export default function Login() {
 
     try {
       await signInWithPopup(auth, googleProvider);
-      setSuccess('Autentikasi berhasil! Mengarahkan Anda ke formulir pengisian data diri warga...');
+      setSuccess('Asik! Autentikasi berhasil. Yuk isi data diri Anda sebagai warga!');
     } catch (err: any) {
-      setError(err.message || 'Gagal memulai pendaftaran.');
+      setError(err.message || 'Gagal memulai pendaftaran warga.');
       await signOut(auth);
     } finally {
       setLoading(false);
@@ -78,66 +77,66 @@ export default function Login() {
 
   if (user && profile?.tenantId) {
     return (
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center mb-5 max-w-md mx-auto">
+      <div className="bg-white p-2.5 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center mb-5 max-w-md mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm shadow-inner">
             {profile?.email?.[0]?.toUpperCase() || 'U'}
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-900">{profile?.email}</p>
-            <p className="text-[10px] text-gray-500 uppercase tracking-tighter">{profile?.role || 'User'}</p>
+            <p className="text-xs font-bold text-slate-900">{profile?.displayName || profile?.email}</p>
+            <p className="text-[10px] text-blue-600 font-semibold uppercase tracking-wider">{profile?.role || 'Anggota Warga'}</p>
           </div>
         </div>
         <button 
           onClick={() => signOut(auth)}
-          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+          title="Keluar dari Akun"
         >
-          <LogOut size={16} />
+          <LogOut size={18} />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="max-w-md mx-auto tech-card p-3 rounded-2xl bg-white/95 mt-10 relative overflow-hidden border-t-4 border-t-cyan-500">
-      {/* Background Decorative Element */}
-      <div className="absolute -top-12 -right-12 w-24 h-24 bg-cyan-500/5 rounded-full blur-3xl" />
-      
-      {/* Brand & Logo */}
-      <div className="text-center mb-6 relative z-10">
-        <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-200 shadow-xs mb-3 mx-auto relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 opacity-50" />
+    <div className="max-w-md mx-auto p-3.5 rounded-xl bg-white shadow-xl border border-slate-100 mt-6 relative overflow-hidden">
+      {/* Decorative Ornaments */}
+      <div className="absolute -top-10 -right-10 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl" />
+      <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-cyan-500/10 rounded-full blur-2xl" />
+
+      {/* Brand Header */}
+      <div className="text-center mb-5 relative z-10">
+        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 shadow-sm mb-3 mx-auto relative overflow-hidden group">
           <img 
             src="/src/assets/images/sinergikita_logo_minimalist_1783798322236.jpg" 
-            alt="Logo" 
+            alt="Logo SinergiKita" 
             className="w-full h-full object-cover relative z-10" 
             referrerPolicy="no-referrer"
           />
         </div>
-        <h1 className="text-2xl font-black tracking-tight text-slate-900 leading-none uppercase">
-          COMMUNITY <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600">OS</span>
+        <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-1.5">
+          SinergiKita <Sparkles size={16} className="text-amber-500" />
         </h1>
-        <div className="flex items-center justify-center gap-1.5 mt-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-          <p className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest">System Access Terminal // V.2.1</p>
-        </div>
+        <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+          Portal Komunitas Warga Digital Indonesia
+        </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex bg-slate-50 p-1 rounded-xl mb-6 border border-slate-200 shadow-inner">
+      {/* Tab Switchers */}
+      <div className="flex bg-slate-100/80 p-1 rounded-xl mb-5 border border-slate-200/60 font-medium">
         <button
           onClick={() => {
             setActiveTab('signin');
             setError('');
             setSuccess('');
           }}
-          className={`flex-1 py-2.5 rounded-lg text-[10px] font-mono font-black transition-all uppercase tracking-wider ${
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'signin'
-              ? 'bg-white text-cyan-600 shadow-sm border border-slate-200'
-              : 'text-slate-400 hover:text-slate-600'
+              ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          AUTH_LOGIN
+          Masuk Akun
         </button>
         <button
           onClick={() => {
@@ -145,25 +144,25 @@ export default function Login() {
             setError('');
             setSuccess('');
           }}
-          className={`flex-1 py-2.5 rounded-lg text-[10px] font-mono font-black transition-all uppercase tracking-wider ${
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'signup'
-              ? 'bg-white text-cyan-600 shadow-sm border border-slate-200'
-              : 'text-slate-400 hover:text-slate-600'
+              ? 'bg-white text-blue-600 shadow-sm border border-slate-200/60'
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          AUTH_REGISTER
+          Daftar Baru
         </button>
       </div>
 
-      {/* Notifications */}
+      {/* Error & Success Messages */}
       {error && (
         <motion.div 
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="mb-5 p-3 bg-rose-50 rounded-lg border border-rose-100 flex items-start gap-2"
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 p-3 bg-rose-50 rounded-xl border border-rose-100 flex items-start gap-2.5"
         >
-          <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={12} />
-          <p className="text-[10px] text-rose-600 font-mono font-bold leading-normal uppercase">{error}</p>
+          <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={16} />
+          <p className="text-xs text-rose-700 font-semibold leading-snug">{error}</p>
         </motion.div>
       )}
 
@@ -171,105 +170,100 @@ export default function Login() {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mb-5 p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex items-start gap-2"
+          className="mb-4 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-start gap-2.5"
         >
-          <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={12} />
-          <p className="text-[10px] text-emerald-600 font-mono font-bold leading-normal uppercase">{success}</p>
+          <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={16} />
+          <p className="text-xs text-emerald-700 font-semibold leading-snug">{success}</p>
         </motion.div>
       )}
 
-      {/* Decoupled Tab Contents */}
+      {/* Tab Contents */}
       {activeTab === 'signin' ? (
-        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="p-4 border border-slate-200 bg-slate-50/50 rounded-xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/20" />
-            <h3 className="text-[10px] font-mono font-black text-slate-900 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-              <ShieldCheck size={10} className="text-cyan-600" />
-              CITIZEN_ACCESS_PORTAL
-            </h3>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
-              Access granted for registered residents, authorized community leaders, and system administrators.
+        <div className="space-y-4">
+          <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck size={16} className="text-blue-600" />
+              <h3 className="text-xs font-bold text-slate-900">Masuk Komunitas Anda</h3>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+              Gunakan akun Google Anda yang sudah terdaftar sebagai warga atau pengurus komunitas.
             </p>
           </div>
 
           <button
             onClick={handleSignIn}
             disabled={loading}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-50 relative group overflow-hidden shadow-lg shadow-slate-200"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:opacity-50 shadow-md shadow-blue-100 cursor-pointer"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/0 via-cyan-600/10 to-cyan-600/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
             {loading && selectedFlow === 'warga_login' ? (
-              <Loader2 className="animate-spin" size={14} />
+              <Loader2 className="animate-spin" size={16} />
             ) : (
-              <Mail size={14} className="text-cyan-400" />
+              <Mail size={16} />
             )}
-            ESTABLISH_SESSION
+            Masuk dengan Google
           </button>
         </div>
       ) : (
-        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* Path A: Tenant Admin Creation */}
-          <div className="p-4 border border-slate-200 hover:border-cyan-300 hover:bg-cyan-50/10 rounded-xl transition-all text-left relative group">
-            <div className="flex items-center gap-2.5 mb-2.5">
-              <div className="p-1.5 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 group-hover:text-cyan-600 group-hover:border-cyan-200 transition-colors">
-                <Building2 size={14} />
+        <div className="space-y-3">
+          {/* Option 1: Buat Komunitas Baru */}
+          <div className="p-3 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/20 rounded-xl transition-all text-left group">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 bg-blue-100/70 text-blue-700 rounded-xl">
+                <Building2 size={16} />
               </div>
-              <h3 className="text-[10px] font-mono font-black text-slate-900 uppercase tracking-widest">01. INITIATE_NEW_NODE</h3>
+              <h3 className="text-xs font-bold text-slate-900">1. Daftarkan Komunitas Baru</h3>
             </div>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-medium mb-4">
-              Register a new RT/RW or community unit. Requires manual validation by Central Master Authority.
+            <p className="text-[11px] text-slate-500 leading-relaxed font-medium mb-3">
+              Khusus Pengurus RT/RW, Paguyuban, atau Koperasi yang ingin mendaftarkan wilayahnya.
             </p>
             
             <button
               onClick={handleTenantSignUp}
               disabled={loading}
-              className="w-full bg-slate-50 hover:bg-cyan-50 text-slate-700 hover:text-cyan-700 py-2.5 rounded-lg font-mono font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-200 hover:border-cyan-200"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
             >
               {loading && selectedFlow === 'tenant_signup' ? (
-                <Loader2 className="animate-spin" size={12} />
+                <Loader2 className="animate-spin" size={14} />
               ) : (
-                <Rocket size={12} />
+                <>Daftarkan Komunitas <ArrowRight size={14} /></>
               )}
-              REGISTER_TENANT <ArrowRight size={10} />
             </button>
           </div>
 
-          {/* Path B: Member Sign Up */}
-          <div className="p-4 border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/10 rounded-xl transition-all text-left relative group">
-            <div className="flex items-center gap-2.5 mb-2.5">
-              <div className="p-1.5 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 group-hover:text-emerald-600 group-hover:border-emerald-200 transition-colors">
-                <Users size={14} />
+          {/* Option 2: Gabung Komunitas Existing */}
+          <div className="p-3 border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/20 rounded-xl transition-all text-left group">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-1.5 bg-emerald-100/70 text-emerald-700 rounded-xl">
+                <Users size={16} />
               </div>
-              <h3 className="text-[10px] font-mono font-black text-slate-900 uppercase tracking-widest">02. JOIN_EXISTING_NODE</h3>
+              <h3 className="text-xs font-bold text-slate-900">2. Gabung Sebagai Warga</h3>
             </div>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-medium mb-4">
-              Connect to an established node via unique Community ID. Data verification by local leadership required.
+            <p className="text-[11px] text-slate-500 leading-relaxed font-medium mb-3">
+              Untuk warga atau anggota yang sudah mendapat Kode ID Komunitas dari pengurus.
             </p>
 
             <button
               onClick={handleWargaSignUp}
               disabled={loading}
-              className="w-full bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 py-2.5 rounded-lg font-mono font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-200 hover:border-emerald-200"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
             >
               {loading && selectedFlow === 'warga_signup' ? (
-                <Loader2 className="animate-spin" size={12} />
+                <Loader2 className="animate-spin" size={14} />
               ) : (
-                <ShieldCheck size={12} />
+                <>Gabung Komunitas <ArrowRight size={14} /></>
               )}
-              REGISTER_CITIZEN <ArrowRight size={10} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Fine Print Footer */}
-      <div className="mt-8 pt-4 border-t border-slate-100 text-center">
-        <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center justify-center gap-2">
-          <div className="w-1 h-1 rounded-full bg-slate-200" />
-          SECURE_ENCRYPTION_ACTIVE
-          <div className="w-1 h-1 rounded-full bg-slate-200" />
-        </span>
+      {/* Footer Info */}
+      <div className="mt-5 pt-3 border-t border-slate-100 text-center">
+        <p className="text-[10px] text-slate-400 font-medium">
+          🔒 Terkoneksi aman dengan Firebase Auth & Enkripsi Standar
+        </p>
       </div>
     </div>
   );
-};
+}
+;
