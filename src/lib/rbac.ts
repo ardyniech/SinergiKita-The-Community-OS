@@ -1,7 +1,7 @@
 import { AppUser } from '../types';
 import { SUPERADMIN_EMAILS } from './permissions';
 
-export type UserRole = 'superadmin' | 'admin' | 'ketua' | 'bendahara' | 'sekretaris' | 'member';
+export type UserRole = 'superadmin' | 'admin' | 'ketua' | 'bendahara' | 'sekretaris' | 'satgas' | 'member';
 
 export const isMasterAdmin = (user: AppUser | null | undefined): boolean => {
   if (!user) return false;

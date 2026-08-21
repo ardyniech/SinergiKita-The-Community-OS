@@ -31,7 +31,7 @@ export const FinanceContainer: React.FC = () => {
   const [reminderBilling, setReminderBilling] = useState<DuesBilling | null>(null);
   const [receiptData, setReceiptData] = useState<{ payment: DuesPayment; billing?: DuesBilling } | null>(null);
 
-  const isTreasurer = ['bendahara', 'superadmin', 'ketua', 'admin'].includes(profile?.role || '');
+  const isTreasurer = ['bendahara', 'superadmin'].includes(profile?.role || '');
   const pendingPayments = payments.filter(p => p.status === 'pending');
 
   if (loading) return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 text-blue-600 animate-spin" /></div>;

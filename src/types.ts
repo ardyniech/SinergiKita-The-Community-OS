@@ -1,5 +1,5 @@
 // OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika model terpusat SPA.
-export type CommunityModule = 'finance' | 'social' | 'emergency' | 'koperasi' | 'funding' | 'pos' | 'directory' | 'learning' | 'announcements' | 'chat' | 'marketplace' | 'ptt' | 'ai' | 'insights' | 'stats' | 'tips' | 'reports' | 'ai_reports' | 'map' | 'feed' | 'logs' | 'features' | 'settings' | 'superadmin' | 'inventory' | 'voting' | 'letters' | 'patrol' | 'events' | 'guests' | 'contacts' | 'lpj';
+export type CommunityModule = 'finance' | 'social' | 'emergency' | 'koperasi' | 'funding' | 'pos' | 'directory' | 'learning' | 'announcements' | 'chat' | 'marketplace' | 'ptt' | 'ai' | 'insights' | 'stats' | 'tips' | 'reports' | 'ai_reports' | 'map' | 'feed' | 'logs' | 'features' | 'settings' | 'superadmin' | 'inventory' | 'voting' | 'letters' | 'patrol' | 'events' | 'guests' | 'contacts' | 'lpj' | 'ideas' | 'watch';
 
 export interface Tenant {
   id: string;
@@ -22,7 +22,7 @@ export interface AppUser {
   id?: string;
   uid: string;
   email: string;
-  role: 'superadmin' | 'admin' | 'ketua' | 'bendahara' | 'sekretaris' | 'member';
+  role: 'superadmin' | 'admin' | 'ketua' | 'bendahara' | 'sekretaris' | 'satgas' | 'member';
   tenantId: string | null;
   tenantName?: string | null;
   isApproved?: boolean;

@@ -8,6 +8,9 @@ export interface TenantTemplate {
   memberLabel: string; // e.g. "Warga" vs "Anggota" vs "Mitra"
   enabledModules: CommunityModule[];
   defaultModuleOrder: CommunityModule[];
+  defaultSettings?: {
+    liveLocation?: 'forced' | 'opt-in' | 'off';
+  };
 }
 
 export const TENANT_TEMPLATES: Record<string, TenantTemplate> = {
@@ -18,7 +21,8 @@ export const TENANT_TEMPLATES: Record<string, TenantTemplate> = {
     description: 'Untuk tata kelola lingkungan perumahan, iuran kas, surat pengantar, siskamling & LPJ',
     memberLabel: 'Warga',
     enabledModules: ['finance', 'emergency', 'letters', 'patrol', 'events', 'guests', 'contacts', 'lpj', 'voting', 'announcements', 'chat'],
-    defaultModuleOrder: ['finance', 'emergency', 'letters', 'patrol', 'lpj', 'voting', 'events', 'guests', 'contacts', 'announcements', 'chat']
+    defaultModuleOrder: ['finance', 'emergency', 'letters', 'patrol', 'lpj', 'voting', 'events', 'guests', 'contacts', 'announcements', 'chat'],
+    defaultSettings: { liveLocation: 'opt-in' }
   },
   'paguyuban': {
     id: 'paguyuban',
@@ -42,10 +46,11 @@ export const TENANT_TEMPLATES: Record<string, TenantTemplate> = {
     id: 'ojol',
     type: 'ojol',
     title: 'Komunitas Driver / Ojol',
-    description: 'Untuk pangkalan driver, HT Walkie-Talkie (PTT), alarm darurat, kas & bantuan sosial',
+    description: 'Untuk pangkalan driver, HT Walkie-Talkie (PTT), Peta Pandu (Map), alarm darurat, kas & bantuan sosial',
     memberLabel: 'Mitra Driver',
-    enabledModules: ['ptt', 'emergency', 'finance', 'funding', 'contacts', 'chat', 'announcements'],
-    defaultModuleOrder: ['ptt', 'emergency', 'finance', 'funding', 'contacts', 'chat', 'announcements']
+    enabledModules: ['ptt', 'map', 'emergency', 'finance', 'funding', 'contacts', 'chat', 'announcements'],
+    defaultModuleOrder: ['ptt', 'map', 'emergency', 'finance', 'funding', 'contacts', 'chat', 'announcements'],
+    defaultSettings: { liveLocation: 'forced' }
   },
   'petani': {
     id: 'petani',

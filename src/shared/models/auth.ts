@@ -1,4 +1,4 @@
-export type UserRole = 'superadmin' | 'admin' | 'ketua' | 'bendahara' | 'sekretaris' | 'member';
+export type UserRole = 'superadmin' | 'admin' | 'ketua' | 'bendahara' | 'sekretaris' | 'satgas' | 'member';
 
 export interface Tenant {
   id: string;
