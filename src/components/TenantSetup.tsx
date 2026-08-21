@@ -1,11 +1,12 @@
 // OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import { useState, useEffect, FormEvent } from 'react';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Send, Loader2, Users, ArrowLeft } from 'lucide-react';
+import { Building2, Send, Loader2, Users, ArrowLeft, Copy, Check } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
+import { TENANT_TEMPLATES } from '../tenantTemplates';
 
 type SetupMode = 'choice' | 'create' | 'join';
 
@@ -26,6 +27,8 @@ export default function TenantSetup() {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [createdTenantId, setCreatedTenantId] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -45,13 +48,16 @@ export default function TenantSetup() {
 
     setLoading(true);
     try {
+      const template = TENANT_TEMPLATES[tenantType] || TENANT_TEMPLATES['rt-rw'];
       const docRef = await addDoc(collection(db, 'tenants'), {
         name: name.trim(),
         type: tenantType,
         status: 'pending',
         ownerId: profile.uid,
         createdAt: Date.now(),
-        enabledModules: ['emergency', 'finance', 'social', 'directory'] // default modules
+        enabledModules: template.enabledModules,
+        moduleOrder: template.defaultModuleOrder,
+        unlockedModules: template.enabledModules
       });
 
       // Link user to the pending tenant and save contact info
@@ -64,6 +70,7 @@ export default function TenantSetup() {
         address: address.trim()
       });
 
+      setCreatedTenantId(docRef.id);
       setSubmitted(true);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, 'tenants');
@@ -106,17 +113,43 @@ export default function TenantSetup() {
     }
   };
 
+  const handleCopyId = () => {
+    if (!createdTenantId) return;
+    navigator.clipboard.writeText(createdTenantId);
+    setCopied(true);
+    showToast("ID Komunitas berhasil disalin!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (submitted) {
     return (
-      <div className="bg-white p-5 rounded-3xl shadow-xl border border-gray-100 text-center max-w-md mx-auto mt-8">
-        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+      <div className="bg-white p-5 rounded-3xl shadow-xl border border-gray-100 text-center max-w-md mx-auto mt-8 space-y-4">
+        <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
           <Send size={32} />
         </div>
-        <h2 className="text-xl font-black text-gray-900">Sip, Permintaan Berhasil Dikirim! 🎉</h2>
-        <p className="text-xs text-gray-600 mt-2 leading-relaxed font-medium">
-          Pendaftaran komunitas <strong>{name}</strong> sedang ditinjau oleh Tim Pengurus. 
-          Akses Admin akan otomatis aktif setelah permohonan disetujui. Terima kasih sudah bergabung!
+        <h2 className="text-xl font-black text-gray-900">Permintaan Berhasil Dikirim! 🎉</h2>
+        <p className="text-xs text-gray-600 leading-relaxed font-medium">
+          Pendaftaran komunitas <strong>{name}</strong> sedang ditinjau oleh Tim Pengurus / SuperAdmin.
         </p>
+
+        {createdTenantId && (
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">ID Komunitas Anda:</span>
+            <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200">
+              <span className="font-mono text-xs font-bold text-slate-800 tracking-wider select-all">
+                {createdTenantId}
+              </span>
+              <button
+                onClick={handleCopyId}
+                className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                <span>{copied ? 'Tersalin' : 'Salin'}</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500">Bagikan ID ini kepada warga/anggota untuk bergabung.</p>
+          </div>
+        )}
       </div>
     );
   }

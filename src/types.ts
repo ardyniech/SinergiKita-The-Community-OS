@@ -13,6 +13,8 @@ export interface Tenant {
   dashboardOrder?: string[];
   type?: 'rt-rw' | 'paguyuban' | 'umkm' | 'ojol' | 'petani' | 'other';
   logoUrl?: string;
+  qrisImageUrl?: string;
+  qrisAccountName?: string;
   templateButtons?: { id: string; label: string; content: string }[];
 }
 
