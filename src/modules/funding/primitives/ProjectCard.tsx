@@ -1,63 +1,92 @@
-import React from 'react';
-import { Users, HeartHandshake, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, HeartHandshake, TrendingUp, Share2, Check } from 'lucide-react';
 import { FundingProject } from '../../../shared/models';
+import { calculateProjectProgress, generateProjectShareText } from '../logic/fundingUtils';
 
 interface ProjectCardProps {
   project: FundingProject;
+  tenantName?: string;
   onContribute: (project: FundingProject) => void;
 }
 
-export function ProjectCard({ project, onContribute }: ProjectCardProps) {
-  const percent = Math.min(100, Math.round((project.collectedAmount / project.targetAmount) * 100));
+export function ProjectCard({ project, tenantName = 'Komunitas Warga', onContribute }: ProjectCardProps) {
+  const [copied, setCopied] = useState(false);
+  const progress = calculateProjectProgress(project.collectedAmount, project.targetAmount);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = generateProjectShareText({
+      tenantName,
+      projectTitle: project.title,
+      category: project.category,
+      targetAmount: project.targetAmount,
+      collectedAmount: project.collectedAmount,
+      percent: progress.percent
+    });
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="card-3d p-4 bg-white/60 border-white/60 shadow-3d-sm space-y-4 hover:shadow-3d-lg transition-all group">
+    <div className="bg-white border border-slate-200/80 rounded-xl p-3 shadow-xs space-y-3">
       <div className="flex justify-between items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100 text-[8px] font-black uppercase tracking-widest">
-            {project.category}
-          </span>
-          <h3 className="text-[13px] font-black text-slate-900 mt-1.5 uppercase tracking-tight truncate">{project.title}</h3>
-          <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2 leading-snug opacity-80">{project.description}</p>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-100 text-[10px] font-bold capitalize">
+              {project.category}
+            </span>
+            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+              {progress.donorBadge}
+            </span>
+          </div>
+          <h3 className="text-xs font-bold text-slate-900 mt-1 truncate">{project.title}</h3>
+          <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">{project.description}</p>
         </div>
+
+        <button
+          type="button"
+          onClick={handleShare}
+          className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors shrink-0"
+          title="Bagikan ke WhatsApp"
+        >
+          {copied ? <Check size={13} className="text-emerald-600" /> : <Share2 size={13} />}
+        </button>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between items-end">
-          <div className="flex flex-col">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Terkumpul</span>
-            <span className="text-sm font-black text-emerald-600 tabular-nums">Rp {project.collectedAmount.toLocaleString('id-ID')}</span>
+      <div className="space-y-1.5">
+        <div className="flex justify-between items-end text-xs">
+          <div>
+            <span className="text-[10px] text-slate-400 block font-medium">Terkumpul</span>
+            <span className="font-black text-emerald-600">Rp {project.collectedAmount.toLocaleString('id-ID')}</span>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Target</span>
-            <span className="text-[11px] font-black text-slate-400 tabular-nums">Rp {project.targetAmount.toLocaleString('id-ID')}</span>
+          <div className="text-right">
+            <span className="text-[10px] text-slate-400 block font-medium">Target</span>
+            <span className="font-bold text-slate-700">Rp {project.targetAmount.toLocaleString('id-ID')}</span>
           </div>
         </div>
 
-        <div className="w-full bg-slate-100/50 h-2.5 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
+        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
           <div 
-            className="bg-emerald-500 h-full transition-all duration-700 shadow-[0_0_8px_rgba(16,185,129,0.4)] relative" 
-            style={{ width: `${percent}%` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
-          </div>
+            className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
+            style={{ width: `${progress.percent}%` }}
+          />
         </div>
 
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 uppercase tracking-widest">
-            <TrendingUp size={10} /> {percent}% Tercapai
-          </div>
-          <div className="flex items-center gap-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-            <Users size={10} /> 12+ Warga Patungan
-          </div>
+        <div className="flex justify-between items-center text-[10px] text-slate-500">
+          <span className="font-bold text-emerald-700 flex items-center gap-1">
+            <TrendingUp size={11} /> {progress.percent}% Tercapai
+          </span>
+          <span>Sisa: Rp {progress.remainingAmount.toLocaleString('id-ID')}</span>
         </div>
       </div>
 
       <button
         onClick={() => onContribute(project)}
-        className="btn-3d w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-3d-sm transition active:translate-y-0.5"
+        className="w-full h-8.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
       >
-        <HeartHandshake size={16} /> Ikut Patungan Warga
+        <HeartHandshake size={14} />
+        <span>Ikut Donasi / Patungan</span>
       </button>
     </div>
   );

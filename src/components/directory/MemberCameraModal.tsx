@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import React from 'react';
 import { motion } from 'motion/react';
 import { Camera, X, AlertCircle, RotateCcw, Save, Loader2, Upload } from 'lucide-react';

@@ -1,4 +1,5 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
     // ---------------------------------------------------------
@@ -31,15 +32,15 @@ service cloud.firestore {
     }
 
     function isMemberOf(tenantId) {
-      return isSignedIn() && 
-             hasUserData() && 
+      return isSignedIn() &&
+             hasUserData() &&
              getUserData().tenantId == tenantId &&
              (getUserData().isApproved == true || getUserData().role == 'superadmin');
     }
 
     function isMemberOfNoApproval(tenantId) {
-      return isSignedIn() && 
-             hasUserData() && 
+      return isSignedIn() &&
+             hasUserData() &&
              getUserData().tenantId == tenantId;
     }
     
@@ -65,29 +66,39 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------
-    // Users
+    // Users (Fixed N1 & N2)
     // ---------------------------------------------------------
     match /users/{userId} {
+      // Read: self, or same tenant if admin or regular user (N2 fix: explicit tenant checks)
       allow read, list: if isSignedIn() && (
         request.auth.uid == userId || 
-        isAdmin() || 
         (hasUserData() && resource.data.tenantId == getUserData().tenantId) ||
         resource.data.email == request.auth.token.email
       );
       
-      allow create: if isSignedIn();
+      // Create: User can only create their own doc. Must NOT be superadmin. (N1 fix)
+      allow create: if request.auth.uid == userId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role in ['member','admin','ketua','bendahara','sekretaris']
+        && request.resource.data.keys().hasOnly(['uid','email','displayName','photoURL','tenantId','role','isApproved', 'address', 'phoneNumber', 'createdAt', 'status', 'tenantName'])
+        && (request.resource.data.tenantId is string || request.resource.data.tenantId == null);
       
+      // Update: User can update their own non-sensitive fields. Admin can update within same tenant. (N1/N2 fix)
       allow update: if isSignedIn() && (
-        request.auth.uid == userId ||
-        isAdmin()
+        (request.auth.uid == userId && 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','photoURL','tenantId', 'address', 'phoneNumber', 'tenantName']) &&
+         request.resource.data.role == resource.data.role &&
+         request.resource.data.isApproved == resource.data.isApproved) ||
+        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId && request.resource.data.tenantId == resource.data.tenantId &&
+         request.resource.data.role in ['member','admin','ketua','bendahara','sekretaris'] &&
+         (request.auth.uid != userId || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'isApproved'])))
       );
 
       allow delete: if isSignedIn() && (
         resource.data.email == request.auth.token.email ||
-        isAdmin()
+        (isAdmin() && hasUserData() && resource.data.tenantId == getUserData().tenantId)
       );
     }
-
     // ---------------------------------------------------------
     // Transactions & Finance
     // ---------------------------------------------------------
@@ -96,10 +107,20 @@ service cloud.firestore {
       allow create: if isAdmin() && isMemberOf(request.resource.data.tenantId);
       allow update: if isAdmin() && isMemberOf(resource.data.tenantId);
     }
-
     match /recurring/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create, update: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+    match /dues_billings/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+    match /dues_payments/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId) && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() && isMemberOf(resource.data.tenantId);
     }
 
     // ---------------------------------------------------------
@@ -107,14 +128,14 @@ service cloud.firestore {
     // ---------------------------------------------------------
     match /koperasi/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
-      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isAdmin() && isMemberOf(resource.data.tenantId);
     }
-
     match /koperasi_loans/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
-      allow update: if (isAdmin() && isMemberOf(resource.data.tenantId)) || 
-                     (isSignedIn() && resource.data.uid == request.auth.uid && isMemberOf(resource.data.tenantId));
+      allow update: if (isAdmin() && isMemberOf(resource.data.tenantId)) ||
+                      (isSignedIn() && resource.data.uid == request.auth.uid && isMemberOf(resource.data.tenantId));
     }
 
     // ---------------------------------------------------------
@@ -125,7 +146,6 @@ service cloud.firestore {
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
       allow update: if isSignedIn() && isMemberOf(resource.data.tenantId);
     }
-
     match /funding_contributions/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
@@ -142,7 +162,6 @@ service cloud.firestore {
         (isAdmin() && isMemberOf(resource.data.tenantId))
       );
     }
-
     match /marketplace_orders/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId) && (
         request.auth.uid == resource.data.buyerId ||
@@ -164,7 +183,6 @@ service cloud.firestore {
         (isAdmin() && isMemberOf(resource.data.tenantId))
       );
     }
-
     match /post_comments/{id} {
       allow read, list: if isSignedIn();
       allow create: if isSignedIn();
@@ -178,7 +196,6 @@ service cloud.firestore {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
-
     match /pos_transactions/{id} {
       allow read, list: if isSignedIn() && (isAdmin() || isMemberOf(resource.data.tenantId));
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
@@ -191,7 +208,6 @@ service cloud.firestore {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
-
     match /user_learning_progress/{id} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -205,18 +221,15 @@ service cloud.firestore {
       allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
       allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
     }
-
     match /emergencies/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
       allow update: if isAdmin() && isMemberOf(resource.data.tenantId);
     }
-
     match /social_alerts/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
     }
-
     match /announcements/{id} {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
@@ -229,17 +242,14 @@ service cloud.firestore {
       allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow create, update: if isSignedIn() && request.auth.uid == id && isMemberOfNoApproval(request.resource.data.tenantId);
     }
-
     match /audit_logs/{id} {
       allow read, list: if isAdmin();
       allow create: if isSignedIn();
     }
-
     match /insights_cache/{id} {
       allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
-
     match /smart_tips_cache/{id} {
       allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);

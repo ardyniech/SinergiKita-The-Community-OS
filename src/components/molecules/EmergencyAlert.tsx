@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import { motion } from 'motion/react';
 import { AlertCircle, CheckCircle, Clock, MapPin, Shield, Activity, Users, MessageSquare } from 'lucide-react';
 import { updateDoc, doc, deleteDoc } from 'firebase/firestore';

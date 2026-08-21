@@ -1,55 +1,60 @@
-import React from 'react';
-import { Rocket, Plus, History, Filter } from 'lucide-react';
+import React, { useState } from 'react';
+import { Rocket, Plus, History, HeartHandshake } from 'lucide-react';
 
 interface FundingHeaderProps {
   onAddProject: () => void;
   activeTab: 'active' | 'my-contributions';
   setActiveTab: (tab: 'active' | 'my-contributions') => void;
+  isAdmin: boolean;
 }
 
-export function FundingHeader({ onAddProject, activeTab, setActiveTab }: FundingHeaderProps) {
+export function FundingHeader({ onAddProject, activeTab, setActiveTab, isAdmin }: FundingHeaderProps) {
   return (
-    <div className="space-y-5 mb-6">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-3d-sm">
-            <Rocket size={22} />
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <HeartHandshake size={18} />
           </div>
           <div>
-            <h2 className="text-[15px] font-black text-slate-900 leading-tight uppercase tracking-tight">
-              Crowdfunding Warga
-            </h2>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-0.5 opacity-70">Dana Gotong Royong Komunitas</p>
+            <h2 className="text-xs font-bold text-slate-900">Crowdfunding & Donasi Proyek</h2>
+            <p className="text-[10px] text-slate-400">Patungan gotong royong memajukan lingkungan</p>
           </div>
         </div>
-        <button
-          onClick={onAddProject}
-          className="btn-3d w-11 h-11 bg-white border border-slate-200 text-indigo-600 rounded-2xl flex items-center justify-center shadow-3d-sm hover:bg-slate-50 transition"
-        >
-          <Plus size={20} />
-        </button>
+
+        {isAdmin && (
+          <button
+            onClick={onAddProject}
+            className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors"
+          >
+            <Plus size={14} />
+            <span>Buat Proyek</span>
+          </button>
+        )}
       </div>
 
-      <div className="flex bg-slate-100/50 p-1.5 rounded-[20px] overflow-x-auto gap-2 border border-slate-200/50 backdrop-blur-md scrollbar-hide">
+      <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100/80 rounded-xl">
         <button
           onClick={() => setActiveTab('active')}
-          className={`btn-3d flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border ${
+          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'active' 
-              ? 'bg-indigo-600 text-white border-indigo-500 shadow-3d-sm' 
-              : 'bg-white/40 text-slate-500 border-white/80 hover:bg-white'
+              ? 'bg-white text-slate-900 shadow-xs' 
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <Rocket size={14} /> Proyek Aktif
+          <Rocket size={13} className={activeTab === 'active' ? 'text-indigo-600' : 'text-slate-400'} />
+          <span>Proyek Aktif</span>
         </button>
         <button
           onClick={() => setActiveTab('my-contributions')}
-          className={`btn-3d flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border ${
+          className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'my-contributions' 
-              ? 'bg-indigo-600 text-white border-indigo-500 shadow-3d-sm' 
-              : 'bg-white/40 text-slate-500 border-white/80 hover:bg-white'
+              ? 'bg-white text-slate-900 shadow-xs' 
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <History size={14} /> Kontribusi Saya
+          <History size={13} className={activeTab === 'my-contributions' ? 'text-indigo-600' : 'text-slate-400'} />
+          <span>Kontribusi Saya</span>
         </button>
       </div>
     </div>

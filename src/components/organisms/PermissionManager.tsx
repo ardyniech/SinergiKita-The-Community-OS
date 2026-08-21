@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import React, { useState } from 'react';
 import { AppUser } from '../../types';
 import { Search, ShieldAlert, Check, Loader2, Info, ArrowRight, ShieldCheck, User, Users, Heart } from 'lucide-react';

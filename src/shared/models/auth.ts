@@ -13,6 +13,16 @@ export interface Tenant {
   type?: 'rt-rw' | 'paguyuban' | 'umkm' | 'ojol' | 'petani' | 'other';
   logoUrl?: string;
   templateButtons?: { id: string; label: string; content: string }[];
+  qrisImageUrl?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountHolder?: string;
+  paymentInfo?: {
+    bankName?: string;
+    accountNumber?: string;
+    accountHolder?: string;
+    qrisImageUrl?: string;
+  };
 }
 
 export interface AppUser {
@@ -28,7 +38,9 @@ export interface AppUser {
   createdAt?: any;
   status?: 'active' | 'pending' | 'inactive';
   phoneNumber?: string;
+  phone?: string;
   address?: string;
+  houseNumber?: string;
   displayName?: string;
   photoURL?: string;
   rating?: number;

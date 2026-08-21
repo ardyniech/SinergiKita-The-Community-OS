@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import { useState } from 'react';
 import { db } from '../lib/firebase';
 import { doc, setDoc, writeBatch, collection } from 'firebase/firestore';

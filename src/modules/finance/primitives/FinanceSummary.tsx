@@ -1,5 +1,5 @@
 import React from 'react';
-import { Landmark, Plus, FileText } from 'lucide-react';
+import { Landmark, Plus, QrCode, FileText } from 'lucide-react';
 import { CSVExportButton } from '../../../shared/atoms/CSVExportButton';
 import { Transaction } from '../../../shared/models';
 
@@ -8,9 +8,10 @@ interface FinanceSummaryProps {
   totalExpense: number;
   balance: number;
   transactions: Transaction[];
-  isAdminRole: boolean;
+  isTreasurer: boolean;
   onOpenAddModal: () => void;
-  onExportPDF: () => void;
+  onOpenPayModal: () => void;
+  onOpenReportModal?: () => void;
 }
 
 export function FinanceSummary({
@@ -18,71 +19,81 @@ export function FinanceSummary({
   totalExpense,
   balance,
   transactions,
-  isAdminRole,
+  isTreasurer,
   onOpenAddModal,
-  onExportPDF
+  onOpenPayModal,
+  onOpenReportModal
 }: FinanceSummaryProps) {
   return (
-    <div className="bg-white/60 backdrop-blur-sm border-b border-white/60 shadow-3d-sm rounded-3xl overflow-hidden mb-6">
-      <div className="px-4 pt-5 pb-4 space-y-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-3d-sm">
-              <Landmark size={22} />
-            </div>
-            <div>
-              <h2 className="text-[15px] font-black text-slate-900 leading-tight uppercase tracking-tight">
-                Buku Kas Digital
-              </h2>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-0.5">Transparansi Keuangan</p>
-            </div>
+    <div className="bg-white border border-slate-200/80 rounded-xl p-3 shadow-xs mb-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-xs">
+            <Landmark size={18} />
           </div>
-
-          <div className="flex items-center gap-2">
-            <CSVExportButton 
-              data={transactions} 
-              filename="Buku-Kas-SinergiKita" 
-              className="!bg-white/80 !border-white/60 !shadow-3d-sm !rounded-xl h-10"
-            />
-            <button
-              onClick={onExportPDF}
-              className="btn-3d w-10 h-10 bg-white/80 border border-white/60 text-slate-600 rounded-xl flex items-center justify-center hover:bg-white transition shadow-3d-sm"
-              title="Cetak PDF"
-            >
-              <FileText size={18} />
-            </button>
+          <div>
+            <h2 className="text-sm font-black text-slate-900 leading-tight">
+              Buku Kas Komunitas
+            </h2>
+            <p className="text-[10px] font-semibold text-slate-500">Transparansi Keuangan Terbuka</p>
           </div>
         </div>
 
-        {isAdminRole && (
-          <button
-            onClick={onOpenAddModal}
-            className="btn-3d w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-3d-sm transition"
-          >
-            <Plus size={20} /> Catat Transaksi Baru
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {onOpenReportModal && (
+            <button
+              onClick={onOpenReportModal}
+              className="py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors border border-blue-200/60"
+            >
+              <FileText size={13} />
+              <span>Rekap</span>
+            </button>
+          )}
+          <CSVExportButton 
+            data={transactions} 
+            filename="Buku-Kas-Komunitas" 
+            className="!bg-slate-100 !text-slate-700 !text-xs !py-1.5 !px-2.5 !rounded-lg !border-slate-200"
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-slate-100/50 border-t border-slate-100/50 bg-white/30">
-        <div className="px-3 py-4 flex flex-col items-center text-center">
-          <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1 opacity-80">Pemasukan</span>
-          <p className="text-[13px] font-black text-emerald-600 tabular-nums tracking-tighter">
+      <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-2.5 rounded-lg border border-slate-100">
+        <div className="flex flex-col">
+          <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-tight">Pemasukan</span>
+          <p className="text-xs font-black text-emerald-600 truncate">
             Rp {totalIncome.toLocaleString('id-ID')}
           </p>
         </div>
-        <div className="px-3 py-4 flex flex-col items-center text-center">
-          <span className="text-[8px] font-black text-rose-600 uppercase tracking-widest mb-1 opacity-80">Pengeluaran</span>
-          <p className="text-[13px] font-black text-rose-600 tabular-nums tracking-tighter">
+        <div className="flex flex-col">
+          <span className="text-[9px] font-bold text-rose-700 uppercase tracking-tight">Pengeluaran</span>
+          <p className="text-xs font-black text-rose-600 truncate">
             Rp {totalExpense.toLocaleString('id-ID')}
           </p>
         </div>
-        <div className="px-3 py-4 flex flex-col items-center text-center">
-          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 opacity-80">Saldo Bersih</span>
-          <p className="text-[13px] font-black text-slate-900 tabular-nums tracking-tighter">
+        <div className="flex flex-col">
+          <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tight">Saldo Kas</span>
+          <p className="text-xs font-black text-slate-900 truncate">
             Rp {balance.toLocaleString('id-ID')}
           </p>
         </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={onOpenPayModal}
+          className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+        >
+          <QrCode size={16} /> Bayar Iuran (QRIS)
+        </button>
+
+        {isTreasurer && (
+          <button
+            onClick={onOpenAddModal}
+            className="flex-1 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+          >
+            <Plus size={16} /> Catat Mutasi
+          </button>
+        )}
       </div>
     </div>
   );

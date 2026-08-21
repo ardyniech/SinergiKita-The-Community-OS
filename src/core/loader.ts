@@ -6,6 +6,9 @@ import { initMarketplaceModule } from '../modules/marketplace';
 import { initPOSModule } from '../modules/pos';
 import { initSocialModule } from '../modules/social';
 import { initLearningModule } from '../modules/learning';
+import { initReportingModule } from '../modules/reporting';
+import { initInventoryModule } from '../modules/inventory';
+import { initVotingModule } from '../modules/voting';
 
 export function initializeModules() {
   console.log('[Core] Initializing Modules...');
@@ -17,5 +20,7 @@ export function initializeModules() {
   initPOSModule();
   initSocialModule();
   initLearningModule();
-  // Add other modules here as they are refactored
+  initReportingModule();
+  initInventoryModule();
+  initVotingModule();
 }

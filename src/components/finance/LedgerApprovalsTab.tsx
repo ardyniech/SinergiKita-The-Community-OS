@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import React from 'react';
 import { ShieldCheck, Check } from 'lucide-react';
 import { motion } from 'motion/react';

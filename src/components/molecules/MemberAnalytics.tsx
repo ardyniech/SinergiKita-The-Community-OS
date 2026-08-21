@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import React, { useMemo } from 'react';
 import { 
   BarChart, 

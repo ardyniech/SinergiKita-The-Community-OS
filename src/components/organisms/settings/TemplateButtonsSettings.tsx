@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import { useState } from 'react';
 import { Save, Loader2, Plus, Trash2, MessageSquare, List } from 'lucide-react';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';

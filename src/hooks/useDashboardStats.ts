@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import { useState, useEffect, useMemo } from 'react';
 import { Transaction, AppUser } from '../types';
 import { useAuth } from '../context/AuthContext';

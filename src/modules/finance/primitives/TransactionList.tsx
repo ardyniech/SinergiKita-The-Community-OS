@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Inbox } from 'lucide-react';
 import { Transaction } from '../../../shared/models';
 
 interface TransactionListProps {
@@ -9,49 +9,50 @@ interface TransactionListProps {
 
 export function TransactionList({ systemBalance, transactions }: TransactionListProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
-        <div className="flex flex-col">
-          <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Jejak Mutasi Digital</h3>
-          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 opacity-70">
-            Total Kas: <span className="text-indigo-600 font-black">Rp {systemBalance.toLocaleString()}</span>
-          </p>
-        </div>
+        <h3 className="text-xs font-bold text-slate-900">Riwayat Mutasi Kas</h3>
+        <span className="text-[10px] font-semibold text-slate-500">
+          {transactions.length} transaksi tercatat
+        </span>
       </div>
 
-      <div className="rounded-[32px] border border-slate-200/50 overflow-hidden shadow-inner bg-slate-50/30">
-        <div className="flex flex-col divide-y divide-slate-100 max-h-[500px] overflow-y-auto scrollbar-hide">
-          {transactions.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] italic opacity-50">Belum ada mutasi keuangan.</p>
-            </div>
-          ) : (
-            transactions.map(t => (
-              <div key={t.id} className="p-4 flex justify-between items-center group hover:bg-white/60 transition-all">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-3d-sm border shrink-0 ${
-                    t.type === 'credit' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
+      <div className="bg-white rounded-xl border border-slate-200/80 overflow-hidden divide-y divide-slate-100 shadow-xs">
+        {transactions.length === 0 ? (
+          <div className="py-10 flex flex-col items-center justify-center text-center px-4">
+            <Inbox className="w-8 h-8 text-slate-300 mb-1.5" />
+            <p className="text-xs font-semibold text-slate-500">Belum ada mutasi keuangan tercatat.</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Semua pemasukan & pengeluaran kas akan tampil di sini.</p>
+          </div>
+        ) : (
+          transactions.map(t => {
+            const isCredit = t.type === 'credit';
+            return (
+              <div key={t.id} className="p-2.5 flex items-center justify-between gap-2 hover:bg-slate-50/80 transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    isCredit ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                   }`}>
-                    <FileText size={18} />
+                    {isCredit ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1 truncate">{t.description}</p>
-                    <p className="text-slate-400 text-[8px] font-bold uppercase tracking-widest truncate">
-                      {t.date} { (t as any).recordedBy && <span className="opacity-60">• {(t as any).recordedBy}</span> }
+                    <p className="text-xs font-bold text-slate-800 truncate">{t.description}</p>
+                    <p className="text-[10px] text-slate-400 truncate">
+                      {t.date} {t.recordedBy && `• Oleh: ${t.recordedBy}`}
                     </p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className={`px-3 py-1.5 rounded-xl font-black text-[11px] tracking-tighter border shadow-3d-sm ${
-                    t.type === 'credit' ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-rose-500 text-white border-rose-400'
+                  <span className={`text-xs font-bold ${
+                    isCredit ? 'text-emerald-600' : 'text-rose-600'
                   }`}>
-                    {t.type === 'credit' ? '+' : '-'} {t.amount.toLocaleString()}
+                    {isCredit ? '+' : '-'} Rp {t.amount.toLocaleString('id-ID')}
                   </span>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

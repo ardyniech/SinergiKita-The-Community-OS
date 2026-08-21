@@ -6,7 +6,8 @@ export interface SocialPost {
   authorAvatar?: string;
   content: string;
   image?: string;
-  likes: string[]; // Array of user IDs
+  likes?: string[];
+  likeCount?: number; // Array of user IDs
   commentCount: number;
   timestamp: any;
 }

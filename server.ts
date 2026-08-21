@@ -6,6 +6,7 @@ import { requireAuth } from "./src/middleware/auth.ts";
 import { apiRouter } from "./server/routes/api";
 import { financeRouter } from "./server/routes/finance";
 import { aiRouter } from "./server/routes/ai";
+import { reportsRouter } from "./server/routes/reports";
 import { apiLimiter } from "./server/middleware/limiter";
 import { notifyEmergencyAdmins } from "./server/controllers/emergencyController";
 
@@ -18,6 +19,7 @@ async function startServer() {
   // Apply auth & rate limiting middleware to API routes
   app.use("/api/finances", requireAuth, apiLimiter, financeRouter);
   app.use("/api/ai", requireAuth, apiLimiter, aiRouter);
+  app.use("/api/reports", requireAuth, apiLimiter, reportsRouter);
   app.use("/api/community/emergencies/notify", requireAuth, apiLimiter, notifyEmergencyAdmins);
   app.use("/api", apiRouter);
 

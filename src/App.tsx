@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Menyatukan root routing SPA dan integrasi tampilan modul terpusat.
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from './shared/utils/firebase';
@@ -29,12 +30,21 @@ import TenantSetup from './components/TenantSetup';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import { MarketplaceModule } from './modules/marketplace';
 import { POSModule } from './modules/pos';
+import { InventoryModule } from './modules/inventory';
+import { VotingModule } from './modules/voting';
+import { LettersModule } from './modules/letters';
+import { PatrolModule } from './modules/patrol';
+import { EventsModule } from './modules/events';
+import { GuestsModule } from './modules/guests';
+import { ContactsModule } from './modules/contacts';
+import { LPJModule } from './modules/lpj';
 import RealTimeNotifications from './components/RealTimeNotifications';
 import LeaderboardView from './components/LeaderboardView';
 import { useLocationHeartbeat } from './hooks/useLocationHeartbeat';
 import { AnimatePresence } from 'motion/react';
+import { ReportDashboard } from './modules/reporting';
 
-type View = 'dashboard' | 'emergency' | 'finance' | 'social' | 'directory' | 'koperasi' | 'funding' | 'marketplace' | 'learning' | 'announcements' | 'chat' | 'ptt' | 'settings' | 'superadmin' | 'pos' | 'leaderboard';
+type View = 'dashboard' | 'emergency' | 'finance' | 'social' | 'directory' | 'koperasi' | 'funding' | 'marketplace' | 'learning' | 'announcements' | 'chat' | 'ptt' | 'settings' | 'superadmin' | 'pos' | 'leaderboard' | 'ai_reports' | 'inventory' | 'voting' | 'letters' | 'patrol' | 'events' | 'guests' | 'contacts' | 'lpj';
 
 function MainApp() {
   const { profile, tenant, loading } = useAuth();
@@ -47,16 +57,8 @@ function MainApp() {
 
   useEffect(() => {
     if (!profile?.tenantId || !profile?.isApproved) return;
-    const unsubE = onSnapshot(
-      query(collection(db, 'emergencies'), where('tenantId', '==', profile.tenantId)), 
-      s => setStats(prev => ({ ...prev, emergencies: s.size })),
-      e => console.warn("App emergencies snapshot error:", e)
-    );
-    const unsubM = onSnapshot(
-      query(collection(db, 'users'), where('tenantId', '==', profile.tenantId)), 
-      s => setStats(prev => ({ ...prev, members: s.size })),
-      e => console.warn("App users snapshot error:", e)
-    );
+    const unsubE = onSnapshot(query(collection(db, 'emergencies'), where('tenantId', '==', profile.tenantId)), s => setStats(p => ({ ...p, emergencies: s.size })));
+    const unsubM = onSnapshot(query(collection(db, 'users'), where('tenantId', '==', profile.tenantId)), s => setStats(p => ({ ...p, members: s.size })));
     return () => { unsubE(); unsubM(); };
   }, [profile?.tenantId, profile?.isApproved]);
 
@@ -67,10 +69,8 @@ function MainApp() {
     if (!profile.isApproved) {
       const memberLabel = getMemberLabel(tenant?.type);
       const adminLabel = getAdminLabel(tenant?.type);
-      const description = profile.role === 'admin'
-        ? `Registrasi komunitas baru Anda sedang dalam proses peninjauan oleh Master Admin. Harap tunggu persetujuan agar sistem SinergiKita dapat diaktifkan.`
-        : `Akun ${memberLabel.toLowerCase()} Anda sedang ditinjau oleh ${adminLabel} Komunitas.`;
-      return <StatusScreen title="Menunggu Persetujuan" description={description} tenantId={profile.tenantId} />;
+      const desc = profile.role === 'admin' ? `Registrasi komunitas baru sedang ditinjau Master Admin.` : `Akun ${memberLabel.toLowerCase()} sedang ditinjau ${adminLabel}.`;
+      return <StatusScreen title="Menunggu Persetujuan" description={desc} tenantId={profile.tenantId} />;
     }
   }
 
@@ -82,7 +82,15 @@ function MainApp() {
     directory: { title: 'Direktori Warga', component: <MemberDirectory /> },
     koperasi: { title: 'Koperasi Simpan Pinjam', component: <KoperasiModule /> },
     funding: { title: 'Patungan Warga', component: <FundingModule /> },
-    marketplace: { title: 'Market Komunitas', component: <MarketplaceModule /> },
+    marketplace: { title: 'Pasar & UMKM Warga', component: <MarketplaceModule /> },
+    inventory: { title: 'Inventaris & Logistik', component: <InventoryModule /> },
+    voting: { title: 'Suara Warga & E-Voting', component: <VotingModule /> },
+    letters: { title: 'Layanan Surat RT/RW', component: <LettersModule /> },
+    patrol: { title: 'Jadwal Ronda & Siskamling', component: <PatrolModule /> },
+    events: { title: 'Agenda & Kegiatan Warga', component: <EventsModule /> },
+    guests: { title: 'Wajib Lapor Tamu 1x24 Jam', component: <GuestsModule /> },
+    contacts: { title: 'Kontak Darurat & Fasilitas', component: <ContactsModule /> },
+    lpj: { title: 'Ekspor LPJ RT/RW Bulanan', component: <LPJModule /> },
     learning: { title: 'Pusat Pembelajaran', component: <LearningModule /> },
     announcements: { title: 'Warta Warga', component: <AnnouncementsModule /> },
     chat: { title: 'Obrolan Komunitas', component: <CommunicationModule /> },
@@ -91,51 +99,26 @@ function MainApp() {
     superadmin: { title: 'Master Console', component: <SuperAdminDashboard /> },
     pos: { title: 'Kasir POS Warga', component: <POSModule /> },
     leaderboard: { title: 'Leaderboard & Point', component: <LeaderboardView /> },
+    ai_reports: { title: 'Laporan & AI', component: <ReportDashboard tenantId={profile?.tenantId || undefined} /> },
   };
 
   return (
     <div className="min-h-screen bg-slate-900 flex justify-center selection:bg-blue-500 selection:text-white">
-      {/* Native Mobile App Container Frame */}
       <div className="w-full max-w-md mesh-gradient-bg min-h-screen flex flex-col relative shadow-2xl border-x border-slate-200/40 pb-20 overflow-x-hidden">
         <RealTimeNotifications />
         <SmartHeader />
-
         <main className="flex-1 px-2 py-2 space-y-3">
           {currentView === 'dashboard' ? (
-            <DashboardView 
-              profile={profile} 
-              tenant={tenant} 
-              stats={stats} 
-              onNavigate={setCurrentView} 
-              isSuperAdmin={isSuperAdmin} 
-            />
+            <DashboardView profile={profile} tenant={tenant} stats={stats} onNavigate={setCurrentView} isSuperAdmin={isSuperAdmin} />
           ) : (
-            <ModuleContainer 
-              title={views[currentView].title} 
-              onBack={() => setCurrentView('dashboard')}
-            >
+            <ModuleContainer title={views[currentView].title} onBack={() => setCurrentView('dashboard')}>
               {views[currentView].component}
             </ModuleContainer>
           )}
         </main>
-
-        {/* Native Fixed Bottom Bar & Drawer */}
-        <BottomNavBar 
-          currentView={currentView} 
-          onNavigate={(v) => { setCurrentView(v); setIsMenuOpen(false); }}
-          onOpenMenu={() => setIsMenuOpen(true)}
-          activeAlertsCount={stats.emergencies}
-        />
-
+        <BottomNavBar currentView={currentView} onNavigate={(v) => { setCurrentView(v); setIsMenuOpen(false); }} onOpenMenu={() => setIsMenuOpen(true)} activeAlertsCount={stats.emergencies} />
         <AnimatePresence>
-          {isMenuOpen && (
-            <NativeMenuSheet 
-              isOpen={isMenuOpen} 
-              onClose={() => setIsMenuOpen(false)} 
-              onNavigate={(v) => { setCurrentView(v); setIsMenuOpen(false); }}
-              isSuperAdmin={isSuperAdmin}
-            />
-          )}
+          {isMenuOpen && <NativeMenuSheet isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} onNavigate={(v) => { setCurrentView(v); setIsMenuOpen(false); }} isSuperAdmin={isSuperAdmin} />}
         </AnimatePresence>
       </div>
     </div>
@@ -145,5 +128,3 @@ function MainApp() {
 export default function App() {
   return <AuthProvider><ToastProvider><AuditProvider><MainApp /></AuditProvider></ToastProvider></AuthProvider>;
 }
-
-

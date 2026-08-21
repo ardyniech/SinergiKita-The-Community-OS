@@ -3,6 +3,8 @@ export interface MarketplaceProduct {
   tenantId: string;
   sellerId: string;
   sellerName: string;
+  sellerPhone?: string;
+  sellerHouseNo?: string;
   title: string;
   description: string;
   price: number;

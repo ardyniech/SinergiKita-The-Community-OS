@@ -1,6 +1,6 @@
 import React from 'react';
 import { KoperasiRecord } from '../../../shared/models';
-import { History, ArrowDownLeft, AlertCircle } from 'lucide-react';
+import { History, ArrowDownLeft, Inbox } from 'lucide-react';
 
 interface KoperasiHistoryProps {
   records: KoperasiRecord[];
@@ -11,33 +11,35 @@ export function KoperasiHistory({ records, loading }: KoperasiHistoryProps) {
   if (loading) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div className="flex flex-col px-1">
-        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Log Transaksi Koperasi</h3>
-        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 opacity-70">Audit Jejak Gotong Royong</p>
+        <h3 className="text-xs font-bold text-slate-900">Riwayat Mutasi Koperasi</h3>
+        <p className="text-[10px] text-slate-500">Transparansi pencatatan kas simpan pinjam</p>
       </div>
 
-      <div className="card-3d bg-white/80 border-white/60 shadow-3d-sm divide-y divide-slate-100 overflow-hidden">
+      <div className="bg-white border border-slate-200/80 rounded-xl divide-y divide-slate-100 overflow-hidden shadow-xs">
         {records.length === 0 ? (
-          <div className="p-12 text-center">
-            <AlertCircle size={24} className="mx-auto mb-2 text-slate-200" />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Belum Ada Transaksi</p>
+          <div className="p-8 text-center space-y-1">
+            <Inbox className="w-6 h-6 text-slate-300 mx-auto" />
+            <p className="text-xs font-medium text-slate-500">Belum ada riwayat transaksi</p>
           </div>
         ) : (
-          records.map(r => (
-            <div key={r.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-all group">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-white shadow-3d-sm border border-slate-100 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
-                  <ArrowDownLeft size={18} />
+          records.map((r) => (
+            <div key={r.id} className="p-2.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <ArrowDownLeft size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-tight truncate">{r.note || 'Setoran Simpanan'}</h4>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 truncate">{r.userName} • {r.timestamp?.toDate ? r.timestamp.toDate().toLocaleDateString('id-ID') : 'Baru'}</p>
+                  <h4 className="text-xs font-bold text-slate-900 truncate">{r.note || 'Setoran Simpanan'}</h4>
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {r.userName} • {r.timestamp?.toDate ? r.timestamp.toDate().toLocaleDateString('id-ID') : 'Baru'}
+                  </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-[13px] font-black text-emerald-600 tabular-nums">+ Rp {r.amount.toLocaleString()}</p>
-                <p className="text-[8px] font-black text-emerald-500/60 uppercase tracking-tighter">Settled</p>
+              <div className="text-right shrink-0">
+                <p className="text-xs font-black text-emerald-600 tabular-nums">+ Rp {r.amount.toLocaleString('id-ID')}</p>
+                <p className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded inline-block">Selesai</p>
               </div>
             </div>
           ))

@@ -7,9 +7,9 @@ import { Loader2, Users } from 'lucide-react';
 
 export const SocialContainer: React.FC = () => {
   const { profile } = useAuth();
-  const { posts, loading, submitting, handleCreatePost, handleLike } = useSocial(profile?.tenantId || null, profile);
+  const { posts, loading, submitting, hasMore, loadMore, userLikes, handleCreatePost, handleLike } = useSocial(profile?.tenantId || null, profile);
 
-  if (loading) return <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 text-indigo-600 animate-spin" /></div>;
+  if (loading && posts.length === 0) return <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 text-indigo-600 animate-spin" /></div>;
 
   return (
     <div className="liquid-glass rounded-[40px] p-4 sm:p-6 shadow-3d-lg border-white/60 space-y-6">
@@ -32,14 +32,28 @@ export const SocialContainer: React.FC = () => {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Belum ada kabar terbaru dari warga.</p>
           </div>
         ) : (
-          posts.map(post => (
-            <PostCard 
-              key={post.id} 
-              post={post} 
-              currentUserId={profile?.uid} 
-              onLike={handleLike} 
-            />
-          ))
+          <>
+            {posts.map(post => (
+              <PostCard 
+                key={post.id} 
+                post={post} 
+                isLiked={userLikes[post.id] || false}
+                onLike={handleLike} 
+              />
+            ))}
+            
+            {hasMore && (
+              <div className="pt-4 pb-2 text-center">
+                <button 
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-indigo-100 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Muat Lebih Banyak'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

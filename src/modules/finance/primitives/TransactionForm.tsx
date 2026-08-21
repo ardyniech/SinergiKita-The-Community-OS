@@ -1,104 +1,117 @@
 import React, { useState } from 'react';
-import { Plus, Download, Loader2 } from 'lucide-react';
+import { PlusCircle, X, Check } from 'lucide-react';
 import { Transaction } from '../../../shared/models';
 
 interface TransactionFormProps {
   onAdd: (data: Partial<Transaction>) => Promise<void>;
-  onUpload: (file: File) => Promise<void>;
-  uploading: boolean;
-  isSubmitting: boolean;
   onCancel: () => void;
+  recordedByName?: string;
 }
 
-export function TransactionForm({ onAdd, onUpload, uploading, isSubmitting, onCancel }: TransactionFormProps) {
+export function TransactionForm({ onAdd, onCancel, recordedByName }: TransactionFormProps) {
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'credit' | 'debit'>('credit');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onAdd({
-      description: desc,
-      amount: Number(amount),
-      type,
-      date,
-      status: 'completed'
-    });
-    onCancel();
+    if (!desc.trim() || !amount || Number(amount) <= 0) return;
+    setSubmitting(true);
+    try {
+      await onAdd({
+        description: desc.trim(),
+        amount: Number(amount),
+        type,
+        date,
+        status: 'completed',
+        recordedBy: recordedByName || 'Bendahara'
+      });
+      onCancel();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="liquid-glass p-6 rounded-[32px] border-white/60 shadow-3d-lg space-y-5">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-3d-sm">
-            <Plus size={18} />
-          </div>
-          <h3 className="text-[12px] font-black uppercase text-slate-900 tracking-tight">Catat Mutasi Baru</h3>
+    <form onSubmit={handleSubmit} className="bg-white border border-blue-200 rounded-xl p-3 shadow-sm space-y-2.5 animate-in fade-in">
+      <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+        <div className="flex items-center gap-1.5 text-blue-700">
+          <PlusCircle size={16} />
+          <h4 className="text-xs font-bold">Catat Mutasi Kas Baru</h4>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest px-1">Keterangan</label>
-            <input
-              type="text" required value={desc} onChange={e => setDesc(e.target.value)}
-              className="w-full text-[11px] font-black p-3.5 bg-white border border-slate-200 rounded-xl outline-none"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest px-1">Jumlah (Rp)</label>
-            <input
-              type="number" required value={amount} onChange={e => setAmount(e.target.value)}
-              className="w-full text-[11px] font-black p-3.5 bg-white border border-slate-200 rounded-xl outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest px-1">Tipe</label>
-            <select
-              value={type} onChange={e => setType(e.target.value as 'credit' | 'debit')}
-              className="w-full text-[11px] font-black p-3.5 bg-white border border-slate-200 rounded-xl outline-none"
-            >
-              <option value="credit">Pemasukan (+)</option>
-              <option value="debit">Pengeluaran (-)</option>
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest px-1">Tanggal</label>
-            <input
-              type="date" required value={date} onChange={e => setDate(e.target.value)}
-              className="w-full text-[11px] font-black p-3.5 bg-white border border-slate-200 rounded-xl outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancel} className="px-6 py-3 text-[10px] text-slate-500 uppercase font-black tracking-widest">Batal</button>
-          <button type="submit" disabled={isSubmitting} className="btn-3d bg-indigo-600 text-white uppercase font-black text-[10px] tracking-widest px-8 py-3 rounded-xl shadow-3d-sm">
-            {isSubmitting ? 'Memproses...' : 'Simpan Transaksi'}
-          </button>
-        </div>
-      </form>
-
-      <div className="liquid-glass p-5 rounded-[24px] border-white/60 shadow-3d-sm flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-3d-sm">
-            <Download size={24} />
-          </div>
-          <div>
-            <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1">OCR Scan Nota</h3>
-            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Scan nota fisik untuk ekstraksi data otomatis.</p>
-          </div>
-        </div>
-        <input type="file" id="ocr-upload" className="hidden" onChange={e => e.target.files?.[0] && onUpload(e.target.files[0])} />
-        <label htmlFor="ocr-upload" className="btn-3d cursor-pointer bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} 
-          Import Nota
-        </label>
+        <button type="button" onClick={onCancel} className="text-slate-400 hover:text-slate-600 p-1">
+          <X size={16} />
+        </button>
       </div>
-    </div>
+
+      <div className="space-y-1">
+        <label className="text-[10px] font-bold text-slate-500">Keterangan Transaksi</label>
+        <input
+          type="text"
+          required
+          placeholder="Contoh: Beli Lampu Pos Ronda / Iuran Sukarela"
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-slate-500">Jumlah (Rp)</label>
+          <input
+            type="number"
+            required
+            min="1000"
+            placeholder="50000"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-slate-500">Jenis Mutasi</label>
+          <select
+            value={type}
+            onChange={e => setType(e.target.value as 'credit' | 'debit')}
+            className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+          >
+            <option value="credit">Pemasukan (+)</option>
+            <option value="debit">Pengeluaran (-)</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-[10px] font-bold text-slate-500">Tanggal</label>
+        <input
+          type="date"
+          required
+          value={date}
+          onChange={e => setDate(e.target.value)}
+          className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs text-slate-600 font-semibold hover:bg-slate-100 rounded-lg"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1"
+        >
+          <Check size={14} />
+          {submitting ? 'Menyimpan...' : 'Simpan'}
+        </button>
+      </div>
+    </form>
   );
 }

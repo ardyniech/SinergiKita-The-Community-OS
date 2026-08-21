@@ -27,6 +27,20 @@ export const fundingStorage = {
     });
   },
 
+  subscribeToUserContributions(tenantId: string, userId: string, callback: (contribs: Contribution[]) => void) {
+    const q = query(
+      collection(db, 'funding_contributions'),
+      where('tenantId', '==', tenantId),
+      where('contributorId', '==', userId),
+      orderBy('timestamp', 'desc')
+    );
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Contribution)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'funding_contributions');
+    });
+  },
+
   async createProject(tenantId: string, data: Partial<FundingProject>) {
     try {
       await addDoc(collection(db, 'funding_projects'), {
@@ -43,15 +57,13 @@ export const fundingStorage = {
 
   async addContribution(tenantId: string, data: Partial<Contribution>) {
     try {
-      // 1. Add contribution record
       const contribRef = await addDoc(collection(db, 'funding_contributions'), {
         ...data,
         tenantId,
-        status: 'verified', // Auto-verified for this prototype
+        status: 'verified',
         timestamp: serverTimestamp()
       });
 
-      // 2. Increment project collectedAmount
       const projectRef = doc(db, 'funding_projects', data.projectId!);
       await updateDoc(projectRef, {
         collectedAmount: increment(data.amount!)

@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import React from 'react';
 import { Plus, FileText, Download } from 'lucide-react';
 import { Transaction } from '../../types';

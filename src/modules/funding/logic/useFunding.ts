@@ -1,20 +1,36 @@
 import { useState, useEffect } from 'react';
-import { FundingProject, AppUser } from '../../../shared/models';
+import { FundingProject, Contribution, AppUser } from '../../../shared/models';
 import { fundingStorage } from '../storage/fundingStorage';
 import { dispatcher } from '../../../core/dispatcher';
 
 export function useFunding(tenantId: string | null, profile: AppUser | null) {
   const [projects, setProjects] = useState<FundingProject[]>([]);
+  const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!tenantId) return;
-    return fundingStorage.subscribeToProjects(tenantId, (data) => {
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
+    const unsubProjects = fundingStorage.subscribeToProjects(tenantId, (data) => {
       setProjects(data);
       setLoading(false);
     });
-  }, [tenantId]);
+
+    let unsubContribs: (() => void) | undefined;
+    if (profile?.uid) {
+      unsubContribs = fundingStorage.subscribeToUserContributions(tenantId, profile.uid, (data) => {
+        setContributions(data);
+      });
+    }
+
+    return () => {
+      unsubProjects();
+      if (unsubContribs) unsubContribs();
+    };
+  }, [tenantId, profile?.uid]);
 
   const handleCreateProject = async (data: Partial<FundingProject>) => {
     if (!tenantId || !profile) return;
@@ -50,6 +66,7 @@ export function useFunding(tenantId: string | null, profile: AppUser | null) {
 
   return {
     projects,
+    contributions,
     loading,
     submitting,
     handleCreateProject,

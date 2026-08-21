@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import React from 'react';
 import { AppUser } from '../../../shared/models';
 import { Star, Award, AlertTriangle, Edit3, MessageCircle, ShieldCheck, CheckCircle2, Clock, UserX, Camera } from 'lucide-react';

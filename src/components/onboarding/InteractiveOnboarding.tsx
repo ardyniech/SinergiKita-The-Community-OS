@@ -1,3 +1,4 @@
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Siren, Wallet, Store, UserCheck, ChevronRight, ChevronLeft, X, CheckCircle2 } from 'lucide-react';

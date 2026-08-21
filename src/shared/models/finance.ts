@@ -3,10 +3,12 @@ export interface Transaction {
   amount: number;
   type: 'debit' | 'credit';
   description: string;
+  category?: string;
   date: string;
   status?: 'pending' | 'completed' | 'failed';
   tenantId?: string;
   recordedBy?: string;
+  recordedByName?: string;
   createdAt?: any;
 }
 
@@ -45,4 +47,35 @@ export interface KoperasiLoan {
   approvedBy?: string;
   createdAt: any;
   paidAmount?: number;
+}
+
+export interface DuesBilling {
+  id: string;
+  tenantId: string;
+  title: string;
+  amount: number;
+  period: string; // e.g. "Agustus 2026"
+  dueDate: string; // YYYY-MM-DD
+  description?: string;
+  createdBy: string;
+  creatorName?: string;
+  createdAt: any;
+  status: 'active' | 'closed';
+}
+
+export interface DuesPayment {
+  id: string;
+  duesId: string;
+  duesTitle?: string;
+  tenantId: string;
+  userId: string;
+  userName: string;
+  amount: number;
+  paymentMethod: 'qris' | 'transfer' | 'cash';
+  notes?: string;
+  proofUrl?: string;
+  status: 'pending' | 'verified' | 'rejected';
+  paidAt: any;
+  verifiedBy?: string;
+  verifiedAt?: any;
 }

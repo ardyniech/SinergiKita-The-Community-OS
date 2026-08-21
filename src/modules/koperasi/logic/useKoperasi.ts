@@ -37,8 +37,7 @@ export function useKoperasi(tenantId: string | null, profile: AppUser | null) {
     .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
   const handleDeposit = async (amount: number, note: string) => {
-    const isAdmin = ['admin', 'ketua', 'bendahara', 'superadmin'].includes(profile?.role || '');
-    if (!tenantId || !profile || !isAdmin) return;
+    if (!tenantId || !profile) return;
     setSubmitting(true);
     try {
       await koperasiStorage.addDeposit(tenantId, {

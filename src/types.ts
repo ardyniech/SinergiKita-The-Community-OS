@@ -1,4 +1,5 @@
-export type CommunityModule = 'finance' | 'social' | 'emergency' | 'koperasi' | 'funding' | 'pos' | 'directory' | 'learning' | 'announcements' | 'chat' | 'marketplace' | 'ptt' | 'ai' | 'insights' | 'stats' | 'tips' | 'reports' | 'map' | 'feed' | 'logs' | 'features' | 'settings' | 'superadmin';
+// OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika model terpusat SPA.
+export type CommunityModule = 'finance' | 'social' | 'emergency' | 'koperasi' | 'funding' | 'pos' | 'directory' | 'learning' | 'announcements' | 'chat' | 'marketplace' | 'ptt' | 'ai' | 'insights' | 'stats' | 'tips' | 'reports' | 'ai_reports' | 'map' | 'feed' | 'logs' | 'features' | 'settings' | 'superadmin' | 'inventory' | 'voting' | 'letters' | 'patrol' | 'events' | 'guests' | 'contacts' | 'lpj';
 
 export interface Tenant {
   id: string;
@@ -28,10 +29,11 @@ export interface AppUser {
   createdAt?: any;
   status?: 'active' | 'pending' | 'inactive';
   phoneNumber?: string;
+  phone?: string;
   address?: string;
+  houseNumber?: string;
   displayName?: string;
   photoURL?: string;
-  // Advanced Management
   rating?: number;
   skills?: string[];
   points?: number;
@@ -51,110 +53,89 @@ export interface Transaction {
   date: string;
 }
 
-export interface CommunityData {
-  balance: number;
-  announcements: string[];
-  fundingProjects: FundingProject[];
-  marketplaceItems: MarketplaceItem[];
-  socialAlerts: SocialAlert[];
-}
-
 export interface FundingProject {
   id: string;
-  tenantId?: string;
-  uid?: string;
-  ownerName?: string;
   title: string;
-  description?: string;
-  category?: string;
   target?: number;
   current?: number;
+  targetAmount?: number;
+  currentAmount?: number;
+  description: string;
+  progress?: number;
+  category?: string;
   backers?: number;
-  currentSlots?: number;
-  totalSlots?: number;
-  status: 'active' | 'funded' | 'closed';
+  status?: 'active' | 'completed' | 'cancelled';
   createdAt?: any;
-  deadline?: any;
 }
 
-export interface KoperasiRecord {
+export interface FundingContribution {
   id: string;
-  tenantId: string;
-  uid: string;
-  userName: string;
-  type: 'deposit' | 'loan' | 'repayment';
+  projectId: string;
+  projectTitle?: string;
+  userId?: string;
+  userName?: string;
+  contributorName?: string;
   amount: number;
-  note?: string;
-  status: 'pending' | 'completed' | 'rejected';
+  message?: string;
   timestamp: any;
-}
-
-export interface MarketplaceItem {
-  id: string;
-  name: string;
-  price: number;
-  description?: string;
-  category: 'sparepart' | 'food' | 'service' | 'other';
-  sellerName: string;
-  sellerUid: string;
-  whatsappLink: string;
-  createdAt: number;
-  tenantId: string;
-  isNegotiable?: boolean;
-  reviews?: ProductReview[];
+  certificateUrl?: string;
 }
 
 export interface ProductReview {
   id: string;
-  rating: number; // 1-5
+  productId?: string;
+  userId?: string;
+  userName?: string;
+  reviewerUid?: string;
+  reviewerName?: string;
+  rating: number;
   comment: string;
-  reviewerName: string;
-  reviewerUid: string;
-  timestamp: number;
+  timestamp?: any;
+  createdAt?: any;
+}
+
+export interface MarketplaceItem {
+  id: string;
+  name?: string;
+  title?: string;
+  price: number;
+  category: string;
+  description?: string;
+  sellerName?: string;
+  sellerUid?: string;
+  whatsappLink?: string;
+  isNegotiable?: boolean;
+  reviews?: ProductReview[];
 }
 
 export interface SocialAlert {
   id: string;
   title: string;
-  description: string;
   severity: 'low' | 'medium' | 'high';
-  helpers?: number;
+  date: string;
 }
 
 export interface Proposal {
   id: string;
   title: string;
   description: string;
-  category: 'Initiative' | 'Budget' | 'Policy';
+  category: string;
   yesVotes: number;
   noVotes: number;
   status: 'active' | 'closed';
-}
-
-export interface PendingApproval {
-  id: string;
-  title: string;
-  type: 'member' | 'project' | 'tenant' | 'proposal';
-}
-
-export interface Member {
-  id: string;
-  name: string;
-  role: 'admin' | 'member';
-  email: string;
-  isApproved: boolean;
-  phoneNumber?: string;
-  address?: string;
+  author?: string;
+  votes?: Record<string, 'yes' | 'no'>;
 }
 
 export interface AuditEntry {
   id: string;
   action: string;
-  user: string;
-  userEmail: string;
-  userRole: string;
-  timestamp: any; // Firestore Timestamp
-  tenantId: string;
+  user?: string;
+  userEmail?: string;
+  userRole?: string;
+  timestamp?: any;
+  tenantId?: string;
+  details?: string;
 }
 
 export interface Message {
@@ -165,39 +146,10 @@ export interface Message {
   timestamp: string;
 }
 
-export interface RecurringTransaction {
-  id: string;
-  description: string;
-  amount: number;
-  frequency: 'monthly' | 'weekly';
-  nextBillingDate: string;
-  status: 'active' | 'paused';
+export interface CommunityData {
+  balance: number;
+  announcements: string[];
+  fundingProjects: FundingProject[];
+  marketplaceItems: MarketplaceItem[];
+  socialAlerts: SocialAlert[];
 }
-
-export interface KoperasiLoan {
-  id: string;
-  tenantId: string;
-  uid: string;
-  borrowerName: string;
-  amount: number;
-  tenorMonths: number;
-  purpose: string;
-  guarantorName?: string;
-  monthlyInstallment: number;
-  status: 'pending' | 'approved' | 'rejected' | 'active' | 'completed';
-  approvedBy?: string;
-  createdAt: any;
-  paidAmount?: number;
-}
-
-export interface FundingContribution {
-  id: string;
-  tenantId: string;
-  projectId: string;
-  projectTitle: string;
-  uid: string;
-  contributorName: string;
-  amount: number;
-  timestamp: any;
-}
-

@@ -4,13 +4,13 @@ import { isMasterAdmin, isTenantAdmin, getRolePermissions } from '../src/lib/rba
 
 describe('RBAC & Permission Helpers', () => {
   it('identifies superadmin correctly', () => {
-    const user = { uid: '1', email: 'ardy.syafii@gmail.com', role: 'superadmin' as any, tenantId: 't1' };
+    const user = { uid: '1', email: 'superadmin@sinergikita.id', role: 'superadmin' as any, tenantId: 't1', isApproved: true };
     expect(isMasterAdmin(user)).toBe(true);
     expect(isAdmin(user)).toBe(true);
   });
 
   it('identifies tenant admin correctly', () => {
-    const user = { uid: '2', email: 'budi@gmail.com', role: 'admin' as any, tenantId: 't1' };
+    const user = { uid: '2', email: 'budi@gmail.com', role: 'admin' as any, tenantId: 't1', isApproved: true };
     expect(isTenantAdmin(user)).toBe(true);
     expect(isMasterAdmin(user)).toBe(false);
     expect(isAdmin(user)).toBe(true);

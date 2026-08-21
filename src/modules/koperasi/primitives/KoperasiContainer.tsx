@@ -29,46 +29,45 @@ export const KoperasiContainer: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
       </div>
     );
   }
 
   const tabs: { id: KoperasiTab; label: string; icon: any }[] = [
-    ...(isAdmin ? [{ id: 'save' as KoperasiTab, label: 'Setor', icon: PiggyBank }] : []),
-    { id: 'shu', label: 'SHU', icon: Calculator },
+    { id: 'save', label: 'Simpanan', icon: PiggyBank },
     { id: 'loan', label: 'Pinjaman', icon: ArrowUpRight },
+    { id: 'shu', label: 'Hitung SHU', icon: Calculator },
     { id: 'history', label: 'Riwayat', icon: History },
   ];
 
-  // If user is not admin and was on 'save' tab, move to 'shu'
-  if (!isAdmin && activeTab === 'save') {
-    setActiveTab('shu');
-  }
-
   return (
-    <div className="liquid-glass rounded-[40px] p-4 sm:p-6 shadow-3d-lg border-white/60 space-y-6">
+    <div className="space-y-3">
       <KoperasiSummary userDeposits={userDeposits} totalPool={totalKoperasiPool} />
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide px-1">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`btn-3d flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-              activeTab === tab.id 
-              ? 'bg-slate-900 text-white border-slate-800 shadow-3d-sm' 
-              : 'bg-white/60 text-slate-500 border-white/80 hover:bg-white'
-            }`}
-          >
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
+      <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100/80 rounded-xl">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col sm:flex-row items-center justify-center gap-1 py-1.5 px-1 rounded-lg text-[10px] font-bold transition-all ${
+                isActive
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Icon size={13} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
+              <span className="truncate">{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="animate-in fade-in duration-500">
+      <div className="animate-in fade-in duration-300">
         {activeTab === 'save' && (
           <DepositForm onDeposit={handleDeposit} submitting={submitting} />
         )}
