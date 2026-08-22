@@ -9,7 +9,7 @@ import { VerificationList } from '../../verification/primitives/VerificationList
 import { PatrolContainer } from '../../patrol/primitives/PatrolContainer';
 import { useAuth } from '../../../context/AuthContext';
 import { isAdmin as checkAdmin } from '../../../lib/permissions';
-import { subscribeActiveLocationsCount, subscribeActiveEmergenciesCount } from '../storage/ojolStats';
+import { subscribeActiveLocationsCount, subscribeActiveEmergenciesCount, subscribeActiveLocations, ActiveDriver } from '../storage/ojolStats';
 import { subscribeActiveWatchRequests } from '../../watch/storage/watchStorage';
 
 export const OjolCompleteHub: React.FC = () => {
@@ -18,6 +18,7 @@ export const OjolCompleteHub: React.FC = () => {
   const isAdmin = checkAdmin(profile);
 
   const [stats, setStats] = useState({ drivers: 0, watch: 0, sos: 0 });
+  const [activeDrivers, setActiveDrivers] = useState<ActiveDriver[]>([]);
   const tenantId = profile?.tenantId || '';
 
   useEffect(() => {
@@ -26,15 +27,10 @@ export const OjolCompleteHub: React.FC = () => {
       subscribeActiveLocationsCount(tenantId, (n) => setStats((s) => ({ ...s, drivers: n }))),
       subscribeActiveWatchRequests(tenantId, (list) => setStats((s) => ({ ...s, watch: list.length }))),
       subscribeActiveEmergenciesCount(tenantId, (n) => setStats((s) => ({ ...s, sos: n }))),
+      subscribeActiveLocations(tenantId, setActiveDrivers),
     ];
     return () => unsubs.forEach((u) => u());
   }, [tenantId]);
-
-  const mockZones = [
-    { id: '1', name: 'Pangkalan Utama Kalideres', lat: -6.155, lng: 106.705, activeRidersCount: 14 },
-    { id: '2', name: 'Posko Rehat Cengkareng', lat: -6.145, lng: 106.725, activeRidersCount: 8 },
-    { id: '3', name: 'Titik Kumpul Stasiun Duri', lat: -6.160, lng: 106.805, activeRidersCount: 19 },
-  ];
 
   return (
     <div className="space-y-3 pb-6 px-1">
@@ -74,7 +70,7 @@ export const OjolCompleteHub: React.FC = () => {
             onNavigateToEmergency={() => {}}
             onNavigateToPTT={() => setActiveTab('ptt')}
           />
-          <AssemblyZoneMap zones={mockZones} />
+          <AssemblyZoneMap drivers={activeDrivers} currentUserId={profile?.uid} />
         </div>
       )}
 
