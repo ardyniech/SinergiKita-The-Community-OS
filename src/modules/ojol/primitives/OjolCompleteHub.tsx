@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Eye, Radio, Newspaper, ShieldCheck, MapPin, Calendar } from 'lucide-react';
 import { OjolSafetyDashboard } from './OjolSafetyDashboard';
 import { AssemblyZoneMap } from './AssemblyZoneMap';
@@ -9,11 +9,26 @@ import { VerificationList } from '../../verification/primitives/VerificationList
 import { PatrolContainer } from '../../patrol/primitives/PatrolContainer';
 import { useAuth } from '../../../context/AuthContext';
 import { isAdmin as checkAdmin } from '../../../lib/permissions';
+import { subscribeActiveLocationsCount, subscribeActiveEmergenciesCount } from '../storage/ojolStats';
+import { subscribeActiveWatchRequests } from '../../watch/storage/watchStorage';
 
 export const OjolCompleteHub: React.FC = () => {
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'watch' | 'ptt' | 'bulletin' | 'patrol' | 'verification'>('dashboard');
   const isAdmin = checkAdmin(profile);
+
+  const [stats, setStats] = useState({ drivers: 0, watch: 0, sos: 0 });
+  const tenantId = profile?.tenantId || '';
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsubs = [
+      subscribeActiveLocationsCount(tenantId, (n) => setStats((s) => ({ ...s, drivers: n }))),
+      subscribeActiveWatchRequests(tenantId, (list) => setStats((s) => ({ ...s, watch: list.length }))),
+      subscribeActiveEmergenciesCount(tenantId, (n) => setStats((s) => ({ ...s, sos: n }))),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [tenantId]);
 
   const mockZones = [
     { id: '1', name: 'Pangkalan Utama Kalideres', lat: -6.155, lng: 106.705, activeRidersCount: 14 },
@@ -52,9 +67,9 @@ export const OjolCompleteHub: React.FC = () => {
       {activeTab === 'dashboard' && (
         <div className="space-y-3">
           <OjolSafetyDashboard
-            activeDriversCount={18}
-            pendingWatchCount={3}
-            activeSosCount={0}
+            activeDriversCount={stats.drivers}
+            pendingWatchCount={stats.watch}
+            activeSosCount={stats.sos}
             onNavigateToWatch={() => setActiveTab('watch')}
             onNavigateToEmergency={() => {}}
             onNavigateToPTT={() => setActiveTab('ptt')}
