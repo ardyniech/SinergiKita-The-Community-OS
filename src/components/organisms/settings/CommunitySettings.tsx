@@ -1,11 +1,12 @@
 // OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import { useState, useRef, useEffect } from 'react';
-import { Save, Loader2, Image as ImageIcon, Upload, Shield, Users, Mail, Phone } from 'lucide-react';
+import { Save, Loader2, Image as ImageIcon, Upload, Shield, Users, Mail, Phone, Settings2, CheckCircle2 } from 'lucide-react';
 import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
 import { AppUser } from '../../../types';
+import { TENANT_TEMPLATES } from '../../../tenantTemplates';
 
 export default function CommunitySettings() {
   const { profile, tenant } = useAuth();
@@ -13,6 +14,8 @@ export default function CommunitySettings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [tenantName, setTenantName] = useState(tenant?.name || '');
   const [tenantLogo, setTenantLogo] = useState(tenant?.logoUrl || '');
+  const [selectedTemplate, setSelectedTemplate] = useState(tenant?.type || 'other');
+  const [applyDefaultModules, setApplyDefaultModules] = useState(true);
   const [savingBrand, setSavingBrand] = useState(false);
   const [admins, setAdmins] = useState<AppUser[]>([]);
   const [loadingAdmins, setLoadingAdmins] = useState(true);
@@ -42,10 +45,21 @@ export default function CommunitySettings() {
     if (!profile?.tenantId || !tenantName) return;
     setSavingBrand(true);
     try {
-      await updateDoc(doc(db, 'tenants', profile.tenantId), {
+      const updateData: Record<string, any> = {
         name: tenantName,
-        logoUrl: tenantLogo
-      });
+        logoUrl: tenantLogo,
+        type: selectedTemplate
+      };
+
+      if (applyDefaultModules && selectedTemplate !== tenant?.type) {
+        const templateConfig = TENANT_TEMPLATES[selectedTemplate];
+        if (templateConfig) {
+          updateData.enabledModules = templateConfig.enabledModules;
+          updateData.moduleOrder = templateConfig.defaultModuleOrder;
+        }
+      }
+
+      await updateDoc(doc(db, 'tenants', profile.tenantId), updateData);
       showToast("Pengaturan komunitas diperbarui.");
     } catch (err) {
       showToast("Gagal memperbarui pengaturan.");
@@ -86,6 +100,64 @@ export default function CommunitySettings() {
               onChange={e => setTenantName(e.target.value)}
               placeholder="Masukkan nama komunitas..."
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1">
+              <Settings2 size={10} /> Jenis Templat Komunitas
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+              {Object.values(TENANT_TEMPLATES).map((tmpl) => {
+                const isSelected = selectedTemplate === tmpl.type;
+                const isCurrent = tenant?.type === tmpl.type;
+                return (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => setSelectedTemplate(tmpl.type)}
+                    className={`p-2.5 rounded-xl border text-left transition-all flex items-start gap-2.5 ${
+                      isSelected 
+                        ? 'border-indigo-500 bg-indigo-50/10 shadow-sm' 
+                        : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
+                    }`}
+                  >
+                    <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                      isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white'
+                    }`}>
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-900 leading-tight">{tmpl.title}</span>
+                        {isCurrent && (
+                          <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-[7px] font-black uppercase tracking-widest border border-emerald-100">
+                            Aktif
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[9px] text-slate-500 leading-tight mt-0.5">{tmpl.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedTemplate !== tenant?.type && (
+              <label className="flex items-center gap-2 p-2 bg-amber-50/30 border border-amber-100 rounded-xl mt-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={applyDefaultModules}
+                  onChange={(e) => setApplyDefaultModules(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] font-bold text-amber-800 leading-tight">Sesuaikan Fitur & Menu Bawaan</p>
+                  <p className="text-[8px] text-amber-600/90 leading-tight mt-0.5">
+                    Otomatis aktifkan modul & susunan menu default untuk templat "{TENANT_TEMPLATES[selectedTemplate]?.title}".
+                  </p>
+                </div>
+              </label>
+            )}
           </div>
 
           <div className="space-y-1.5">

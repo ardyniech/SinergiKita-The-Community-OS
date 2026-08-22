@@ -1,8 +1,8 @@
 // OVER_LIMIT_JUSTIFIED: Refactoring tertunda, logika komponen kohesif.
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, getDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth, db, googleProvider } from '../lib/firebase';
 import { AppUser, Tenant } from '../types';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 import { SUPERADMIN_EMAILS } from '../lib/permissions';
@@ -13,6 +13,8 @@ interface AuthContextType {
   tenant: Tenant | null;
   loading: boolean;
   isSuperAdmin: boolean;
+  signInWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -135,8 +137,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, [profile?.tenantId]);
 
+  const signInWithGoogle = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Google Sign-In Error:", error);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, profile, tenant, loading, isSuperAdmin }}>
+    <AuthContext.Provider value={{ user, profile, tenant, loading, isSuperAdmin, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

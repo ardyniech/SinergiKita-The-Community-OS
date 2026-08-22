@@ -12,6 +12,7 @@ export interface Tenant {
   moduleOrder?: CommunityModule[];
   dashboardOrder?: string[];
   type?: 'rt-rw' | 'paguyuban' | 'umkm' | 'ojol' | 'petani' | 'other';
+  languageStyle?: 'formal' | 'family' | 'ojol' | 'casual';
   logoUrl?: string;
   qrisImageUrl?: string;
   qrisAccountName?: string;
