@@ -34,7 +34,7 @@ export const VerificationList: React.FC = () => {
           <h3 className="text-xs font-bold text-slate-800">Verifikasi Driver Pangkalan</h3>
         </div>
         <span className="text-[10px] text-slate-500 font-medium">
-          Total: {members.length} Driver
+          Total: {members.filter((m) => !(m as any).isVerifiedRider && !m.isApproved).length} Driver
         </span>
       </div>
 
@@ -50,7 +50,7 @@ export const VerificationList: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-2">
-          {members.map((m) => (
+          {members.filter((m) => !(m as any).isVerifiedRider && !m.isApproved).map((m) => (
             <RiderVerificationCard key={m.id || m.uid} member={m} onVerify={handleVerify} />
           ))}
         </div>
