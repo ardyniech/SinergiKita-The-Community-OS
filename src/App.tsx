@@ -44,8 +44,9 @@ import { useLocationHeartbeat } from './hooks/useLocationHeartbeat';
 import { AnimatePresence } from 'motion/react';
 import { ReportDashboard } from './modules/reporting';
 import { IdeasContainer } from './modules/ideas';
+import { OjolCompleteHub } from './modules/ojol/primitives/OjolCompleteHub';
 
-type View = 'dashboard' | 'emergency' | 'finance' | 'social' | 'directory' | 'koperasi' | 'funding' | 'marketplace' | 'learning' | 'announcements' | 'chat' | 'ptt' | 'settings' | 'superadmin' | 'pos' | 'leaderboard' | 'ai_reports' | 'inventory' | 'voting' | 'letters' | 'patrol' | 'events' | 'guests' | 'contacts' | 'lpj' | 'ideas';
+type View = 'dashboard' | 'emergency' | 'finance' | 'social' | 'directory' | 'koperasi' | 'funding' | 'marketplace' | 'learning' | 'announcements' | 'chat' | 'ptt' | 'settings' | 'superadmin' | 'pos' | 'leaderboard' | 'ai_reports' | 'inventory' | 'voting' | 'letters' | 'patrol' | 'events' | 'guests' | 'contacts' | 'lpj' | 'ideas' | 'ojol_hub';
 
 function MainApp() {
   const { profile, tenant, loading } = useAuth();
@@ -102,6 +103,7 @@ function MainApp() {
     leaderboard: { title: 'Leaderboard & Point', component: <LeaderboardView /> },
     ai_reports: { title: 'Laporan & AI', component: <ReportDashboard tenantId={profile?.tenantId || undefined} /> },
     ideas: { title: 'Gagasan Komunitas', component: <IdeasContainer /> },
+    ojol_hub: { title: 'Pusat Komunitas Ojol', component: <OjolCompleteHub /> },
   };
 
   return (

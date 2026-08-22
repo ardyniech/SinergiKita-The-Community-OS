@@ -23,6 +23,13 @@
   - Maximum vertical spacing: `space-y-3` or `space-y-4`.
   - NO `max-w-7xl` or excessive `mx-auto` causing large empty side spaces on small screens unless necessary for desktop. On mobile, elements should span close to the full width.
 - **File Length Guideline**: Strive for modularity. Target around 125 lines per file where possible, split logic into smaller components.
-- **Border Radius**: Avoid "jumbo" or "bubbly" looks. Use `rounded-lg` or `rounded-xl`.
-- **Typography**: Use tight tracking and appropriate font weights to ensure clarity without excessive whitespace.
-- **NEVER VIOLATE THIS**: Always remember the user complains constantly about wide margins and excessive padding. Keep things tight and mobile-friendly at all times.
+
+> [!CAUTION]
+> **CRITICAL RULE: PHILOSOPHY "BUILD ONE AND FORGET" & STRICT PHASE ISOLATION**
+> 1. Philosophy "Build One and Forget": Every module is built in total isolation with zero tight coupling. Once completed and tested, it runs reliably on its own without needing future modifications or maintenance.
+> 2. Write code using Atomic Architecture (1 file = 1 single responsibility/functionality).
+> 3. Strict Phase Lock: We are currently in Phase 0 (F0 - Platform Foundation) & Phase 1 (F1 - Ojol Community Module). Once we move to Phase 2 (F2), F0 and F1 code are STRICTLY LOCKED and MUST NOT be modified or refactored further.
+
+> [!CAUTION]
+> **CRITICAL RULE: BAHASA MANUSIA AWAM**
+> Gunakan Bahasa Indonesia yang ringkas, ramah, dan mudah dipahami orang awam. DILARANG MENAMPILKAN POTONGAN KODE, NAMA FILE, ATAU JARGON KODING DALAM RESPON KEPADA USER. Selalu jelaskan perubahan dalam bentuk fungsi/manfaat langsung yang dirasakan pengguna.

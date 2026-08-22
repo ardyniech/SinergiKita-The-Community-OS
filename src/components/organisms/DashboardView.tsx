@@ -120,6 +120,26 @@ export function DashboardView({ profile, tenant, stats, onNavigate, isSuperAdmin
 
   return (
     <div className="w-full py-0.5 space-y-2">
+      {tenant?.type === 'ojol' && (
+        <div 
+          onClick={() => onNavigate('ojol_hub')}
+          className="p-3 bg-gradient-to-r from-indigo-950 to-slate-900 text-white border border-indigo-900 rounded-2xl shadow-md cursor-pointer transition-all active:scale-[0.99]"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shrink-0">
+                <ShieldCheck size={16} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-white leading-tight">Pusat Komunitas Ojol</h3>
+                <p className="text-[10px] text-indigo-200 font-medium">SOS, HT, Pantau Jalan Rawan, & Papan Info</p>
+              </div>
+            </div>
+            <ArrowRight size={14} className="text-indigo-300 shrink-0" />
+          </div>
+        </div>
+      )}
+
       {isAdmin(profile) && (
         <div className="bg-white p-3 rounded-xl border border-indigo-100 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
