@@ -318,5 +318,126 @@ service cloud.firestore {
       allow read: if isSignedIn() && isMemberOf(resource.data.tenantId);
       allow write: if isAdmin() && isMemberOf(request.resource.data.tenantId);
     }
+
+    // ---------------------------------------------------------
+    // Voting
+    // ---------------------------------------------------------
+    match /polls/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+    match /poll_votes/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // Patrol
+    // ---------------------------------------------------------
+    match /patrol_schedules/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+    match /patrol_checkins/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+    match /patrol_shifts/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // LPJ / Reports
+    // ---------------------------------------------------------
+    match /finance_records/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+    match /letter_requests/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+    match /community_events/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+    match /guest_reports/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isAdmin() && isMemberOf(resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // Inventory
+    // ---------------------------------------------------------
+    match /inventory_items/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+    match /inventory_loans/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // Emergency Contacts & Santunan
+    // ---------------------------------------------------------
+    match /emergency_contacts/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
+    match /santunan_claims/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // Funding / Projects
+    // ---------------------------------------------------------
+    match /projects/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update, delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // PTT (Push-To-Talk)
+    // ---------------------------------------------------------
+    match /ptt_messages/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow update: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+
+    // ---------------------------------------------------------
+    // Finance Approvals / Ledger
+    // ---------------------------------------------------------
+    match /transaction_approvals/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+    match /pending_approvals/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create, update: if isSignedIn() && isMemberOf(request.resource.data.tenantId);
+      allow delete: if isAdmin() && isMemberOf(resource.data.tenantId);
+    }
+    match /cash_reconciliations/{id} {
+      allow read, list: if isAdmin() && isMemberOf(resource.data.tenantId);
+      allow create, update, delete: if isAdmin() && isMemberOf(request.resource.data.tenantId);
+    }
   }
 }
