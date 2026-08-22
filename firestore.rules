@@ -233,6 +233,13 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isAdmin());
     }
 
+    // Papan Info / Bulletin Ojol (tenant-scoped)
+    match /bulletin_posts/{id} {
+      allow read, list: if isSignedIn() && isMemberOf(resource.data.tenantId);
+      allow create: if isSignedIn() && isMemberOf(request.resource.data.tenantId) && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isSignedIn() && isMemberOf(resource.data.tenantId) && (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+
     // Moderation Reports & Immutable Audit
     match /social_reports/{reportId} {
       allow read: if isSignedIn() && isAdmin() && isMemberOf(resource.data.tenantId);
