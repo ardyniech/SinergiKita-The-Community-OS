@@ -30,12 +30,15 @@ export async function verifyRiderStatus(
 ): Promise<boolean> {
   try {
     const userRef = doc(db, 'users', memberId);
-    await updateDoc(userRef, {
+    const update: Record<string, unknown> = {
       isVerifiedRider: status,
-      isApproved: status, // Also approve them so they can enter the community
       verifiedAt: Date.now(),
       verifierName
-    });
+    };
+    // Only ever APPROVE (status=true). Never set isApproved=false here,
+    // otherwise un-verifying a rider would lock them out of the tenant.
+    if (status) update.isApproved = true;
+    await updateDoc(userRef, update);
     return true;
   } catch (err) {
     console.error('[Module:Verification] Error verifying rider:', err);
