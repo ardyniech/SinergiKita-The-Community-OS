@@ -27,7 +27,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         isSuperAdmin() || 
-        (hasUserData() && getUserData().role in ['admin', 'ketua', 'bendahara', 'sekretaris'] && getUserData().isApproved == true)
+        (hasUserData() && getUserData().role in ['admin', 'ketua', 'bendahara', 'sekretaris', 'satgas'] && getUserData().isApproved == true)
       );
     }
 

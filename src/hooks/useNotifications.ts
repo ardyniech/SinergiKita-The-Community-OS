@@ -156,14 +156,14 @@ export function useNotifications() {
       }, (error) => console.warn("NotificationCenter funding projects error:", error));
       unsubscribers.push(unsubProj);
 
-      const mktQ = query(collection(db, 'marketplace'), where('tenantId', '==', profile.tenantId), orderBy('createdAt', 'desc'), limit(5));
+      const mktQ = query(collection(db, 'marketplace_products'), where('tenantId', '==', profile.tenantId), orderBy('createdAt', 'desc'), limit(5));
       const unsubMkt = onSnapshot(mktQ, (snapshot) => {
         const items = snapshot.docs
           .filter(doc => doc.data().createdAt && (new Date().getTime() - doc.data().createdAt) / (1000 * 60 * 60) <= 24)
           .map(doc => ({
             id: `marketplace-${doc.id}`,
             title: 'Produk Baru di Marketplace',
-            description: `${doc.data().sellerName} baru saja menambahkan "${doc.data().name}".`,
+            description: `${doc.data().sellerName} baru saja menambahkan "${doc.data().title}".`,
             type: 'update' as const
           }));
         setNotifications(prev => [...prev.filter(n => !n.id.startsWith('marketplace-')), ...items]);
